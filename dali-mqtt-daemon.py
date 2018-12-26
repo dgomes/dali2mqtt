@@ -28,7 +28,25 @@ MQTT_BRIGHTNESS_STATE_TOPIC = MQTT_BASE_TOPIC+"/{}/light/brightness/status"
 MQTT_BRIGHTNESS_COMMAND_TOPIC = MQTT_BASE_TOPIC+"/{}/light/brightness/set"
 MQTT_PAYLOAD_ON = b"ON"
 MQTT_PAYLOAD_OFF = b"OFF"
+MQTT_AVAILABLE = "online"
+MQTT_NOT_AVAILABLE = "offline"
 
+HA_DISCOVERY_PREFIX="homeassistant/light/{}/config"
+
+def gen_ha_config(light):
+    json_config = {
+        "name": "DALI LIGHT {}".format(light),
+        "state_topic": MQTT_STATE_TOPIC.format(light),
+        "command_topic": MQTT_COMMAND_TOPIC.format(light), 
+        "payload_off": MQTT_PAYLOAD_OFF,
+        "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(light), 
+        "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(light), 
+        "on_command_type": 'brightness',
+        "availability_topic": MQTT_DALI2MQTT_STATUS,
+        "payload_available": MQTT_AVAILABLE,
+        "payload_not_available": MQTT_NOT_AVAILABLE,
+    }
+    return json_config
 
 log_format = '%(asctime)s %(levelname)s: %(message)s'
 logging.basicConfig(format=log_format, level=logging.DEBUG)
@@ -75,13 +93,13 @@ def on_message(mosq, dalic, msg):
 
 def on_connect(client, dalic, flags, result):
     client.subscribe([(MQTT_COMMAND_TOPIC.format("+"),0), (MQTT_BRIGHTNESS_COMMAND_TOPIC.format("+"),0)])
-    client.publish(MQTT_DALI2MQTT_STATUS,"1",retain=True)
+    client.publish(MQTT_DALI2MQTT_STATUS,MQTT_AVAILABLE,retain=True)
     lamps = dali_scan(dalic)
-    print(lamps)
     for lamp in lamps:
         try:
             r = dalic.send(gear.QueryActualLevel(address.Short(lamp)))
             logger.debug("QueryActualLevel = %s", r.value)
+            client.publish(HA_DISCOVERY_PREFIX.format(lamp))
             client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(lamp), r.value.as_integer, retain=True)
             client.publish(MQTT_STATE_TOPIC.format(lamp), MQTT_PAYLOAD_ON if r.value.as_integer > 0 else MQTT_PAYLOAD_OFF, retain=True)
         except Exception as e:
@@ -99,7 +117,7 @@ def main_loop(driver, mqtt_server, mqtt_port):
 
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(client_id="dali2mqtt", userdata=dalic)
-    mqttc.will_set(MQTT_DALI2MQTT_STATUS,"0",retain=True)
+    mqttc.will_set(MQTT_DALI2MQTT_STATUS,MQTT_NOT_AVAILABLE,retain=True)
     mqttc.on_connect = on_connect
 
     # Add message callbacks that will only trigger on a specific subscription match.
