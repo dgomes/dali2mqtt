@@ -6,6 +6,7 @@ __email__ = "diogogomes@gmail.com"
 import argparse
 import logging
 import yaml
+import json
 import io
 import re
 
@@ -31,25 +32,27 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
-HA_DISCOVERY_PREFIX="homeassistant/light/{}/config"
+HA_DISCOVERY_PREFIX="homeassistant/light/dali2mqtt_{}/config"
 
 def gen_ha_config(light):
     json_config = {
-        "name": "DALI LIGHT {}".format(light),
+        "name": "DALI Light {}".format(light),
+        "unique_id": "DALI2MQTT_LIGHT_{}".format(light),
         "state_topic": MQTT_STATE_TOPIC.format(light),
         "command_topic": MQTT_COMMAND_TOPIC.format(light), 
-        "payload_off": MQTT_PAYLOAD_OFF,
+        "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
         "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(light), 
         "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(light), 
+        "brightness_scale": 254,
         "on_command_type": 'brightness',
         "availability_topic": MQTT_DALI2MQTT_STATUS,
         "payload_available": MQTT_AVAILABLE,
         "payload_not_available": MQTT_NOT_AVAILABLE,
     }
-    return json_config
+    return json.dumps(json_config)
 
 log_format = '%(asctime)s %(levelname)s: %(message)s'
-logging.basicConfig(format=log_format, level=logging.DEBUG)
+logging.basicConfig(format=log_format, level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 def dali_scan(dali_driver, max_range=4):
@@ -70,9 +73,12 @@ def on_message_cmd(mosq, dalic, msg):
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
     light = int(re.search(MQTT_COMMAND_TOPIC.format('(.+?)'), msg.topic).group(1))
     if msg.payload == MQTT_PAYLOAD_OFF:
-        logger.debug("Set light <%s> to %s", light, msg.payload)
-        dalic.send(gear.Off(address.Short(light)))
-        mosq.publish(MQTT_STATE_TOPIC.format(light), MQTT_PAYLOAD_OFF)
+        try:
+            logger.debug("Set light <%s> to %s", light, msg.payload)
+            dalic.send(gear.Off(address.Short(light)))
+            mosq.publish(MQTT_STATE_TOPIC.format(light), MQTT_PAYLOAD_OFF, retain=True)
+        except:
+            logger.error("Failed to set light <%s> to %s", light, "OFF")
 
 def on_message_brightness_cmd(mosq, dalic, msg):
     logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
@@ -83,7 +89,8 @@ def on_message_brightness_cmd(mosq, dalic, msg):
             raise ValueError
         logger.debug("Set light <%s> brightness to %s", light, level)
         r = dalic.send(gear.DAPC(address.Short(light), level))
-        mosq.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(light), level)
+        mosq.publish(MQTT_STATE_TOPIC.format(light), MQTT_PAYLOAD_ON, retain=True)
+        mosq.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(light), level, retain=True)
     except ValueError as e:
         logger.error(e)
         logger.error("Can't convert <%s> to interger 0..255", level)
@@ -99,7 +106,7 @@ def on_connect(client, dalic, flags, result):
         try:
             r = dalic.send(gear.QueryActualLevel(address.Short(lamp)))
             logger.debug("QueryActualLevel = %s", r.value)
-            client.publish(HA_DISCOVERY_PREFIX.format(lamp))
+            client.publish(HA_DISCOVERY_PREFIX.format(lamp), gen_ha_config(lamp), retain=True)
             client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(lamp), r.value.as_integer, retain=True)
             client.publish(MQTT_STATE_TOPIC.format(lamp), MQTT_PAYLOAD_ON if r.value.as_integer > 0 else MQTT_PAYLOAD_OFF, retain=True)
         except Exception as e:
