@@ -11,9 +11,10 @@ import re
 
 import paho.mqtt.client as mqtt
 
-#import dali.gear.general as gear
-#import dali.exceptions
-#from dali.command import YesNoResponse, Response
+import dali.gear.general as gear
+import dali.exceptions
+import dali.address as address
+from dali.command import YesNoResponse, Response
 
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
@@ -25,6 +26,7 @@ MQTT_STATE_TOPIC = MQTT_BASE_TOPIC+"/{}/light/status"
 MQTT_COMMAND_TOPIC = MQTT_BASE_TOPIC+"/{}/light/switch"
 MQTT_BRIGHTNESS_STATE_TOPIC = MQTT_BASE_TOPIC+"/{}/light/brightness/status"
 MQTT_BRIGHTNESS_COMMAND_TOPIC = MQTT_BASE_TOPIC+"/{}/light/brightness/set"
+MQTT_PAYLOAD_ON = b"ON"
 MQTT_PAYLOAD_OFF = b"OFF"
 
 
@@ -40,14 +42,15 @@ def dali_scan(dali_driver, max_range=4):
             r = dali_driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
             if isinstance(r, YesNoResponse) and r.value:
                 lamps.append(lamp)
-        except:
+        except Exception as e:
+            logger.error(e)
             #Not present
             logger.warning("%s not present", lamp)
     return lamps
 
 def on_message_cmd(mosq, dalic, msg):
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
-    light = re.search(MQTT_COMMAND_TOPIC.format('(.+?)'), msg.topic).group(1)
+    light = int(re.search(MQTT_COMMAND_TOPIC.format('(.+?)'), msg.topic).group(1))
     if msg.payload == MQTT_PAYLOAD_OFF:
         logger.debug("Set light <%s> to %s", light, msg.payload)
         dalic.send(gear.Off(address.Short(light)))
@@ -55,16 +58,17 @@ def on_message_cmd(mosq, dalic, msg):
 
 def on_message_brightness_cmd(mosq, dalic, msg):
     logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
-    light = re.search(MQTT_BRIGHTNESS_COMMAND_TOPIC.format('(.+?)'), msg.topic).group(1)
+    light = int(re.search(MQTT_BRIGHTNESS_COMMAND_TOPIC.format('(.+?)'), msg.topic).group(1))
     try:
-        level = int(msg.payload)
+        level = int(msg.payload.decode("utf-8"))
         if level < 0 or level > 255:
             raise ValueError
         logger.debug("Set light <%s> brightness to %s", light, level)
         r = dalic.send(gear.DAPC(address.Short(light), level))
         mosq.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(light), level)
-    except ValueError:
-        logger.error("Can't convert <%s> to interger 0..255", msg.payload)
+    except ValueError as e:
+        logger.error(e)
+        logger.error("Can't convert <%s> to interger 0..255", level)
 
 def on_message(mosq, dalic, msg):
     logger.error("Don't publish to %s", msg.topic)
@@ -73,14 +77,15 @@ def on_connect(client, dalic, flags, result):
     client.subscribe([(MQTT_COMMAND_TOPIC.format("+"),0), (MQTT_BRIGHTNESS_COMMAND_TOPIC.format("+"),0)])
     client.publish(MQTT_DALI2MQTT_STATUS,"1",retain=True)
     lamps = dali_scan(dalic)
+    print(lamps)
     for lamp in lamps:
-        r = dalic.send(gear.QueryActualLevel(Short(lamp)))
-        logger.debug("QueryActualLevel = %s", r.value)
-        client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(lamp), r.value, retain=True)
-
-        r = dalic.send(gear.QueryLampPowerOn(Short(lamp)))
-        logger.debug("QueryLampPowerOn = %s", r.value)
-        client.publish(MQTT_STATE_TOPIC.format(lamp), r.value, retain=True)
+        try:
+            r = dalic.send(gear.QueryActualLevel(address.Short(lamp)))
+            logger.debug("QueryActualLevel = %s", r.value)
+            client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(lamp), r.value.as_integer, retain=True)
+            client.publish(MQTT_STATE_TOPIC.format(lamp), MQTT_PAYLOAD_ON if r.value.as_integer > 0 else MQTT_PAYLOAD_OFF, retain=True)
+        except Exception as e:
+            logger.error(e)
 
 def main_loop(driver, mqtt_server, mqtt_port):
     dalic = None
