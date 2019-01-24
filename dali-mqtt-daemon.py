@@ -51,6 +51,13 @@ def gen_ha_config(light):
         "availability_topic": MQTT_DALI2MQTT_STATUS.format(MQTT_BASE_TOPIC),
         "payload_available": MQTT_AVAILABLE,
         "payload_not_available": MQTT_NOT_AVAILABLE,
+        "device": {
+                    "identifiers":"dali2mqtt",
+                    "name": "DALI Lights",
+                    "sw_version":"dali2mqtt 0.1",
+                    "model":"dali2mqtt",
+                    "manufacturer":"diogogomes@gmail.com"
+                    }
     }
     return json.dumps(json_config)
 
