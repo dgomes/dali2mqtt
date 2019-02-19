@@ -25,8 +25,11 @@ sudo systemctl enable dali2mqtt.service
 
 ### Give your user permissions to access the USB device
 ```bash
-sudo adduser homeassistant dialout
+sudo adduser homeassistant plugdev 
+cp 50-hasseb.rules /etc/udev/rules.d/
 ```
+You might need to reboot or device after the last change.
+
 In this example the user is **homeassistant**
 
 ### Check everything is OK
