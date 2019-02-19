@@ -23,6 +23,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable dali2mqtt.service 
 ```
 
+### Give your user permissions to access the USB device
+```bash
+sudo adduser homeassistant dialout
+```
+In this example the user is **homeassistant**
+
 ### Check everything is OK
 ```bash
 sudo systemctl start dali2mqtt.service 
