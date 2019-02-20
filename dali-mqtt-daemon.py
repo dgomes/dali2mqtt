@@ -108,7 +108,7 @@ def on_message(mosq, dalic, msg):
 def on_connect(client, dalic, flags, result, max_lamps=4, ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX):
     client.subscribe([(MQTT_COMMAND_TOPIC.format(MQTT_BASE_TOPIC, "+"),0), (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(MQTT_BASE_TOPIC, "+"),0)])
     client.publish(MQTT_DALI2MQTT_STATUS.format(MQTT_BASE_TOPIC),MQTT_AVAILABLE,retain=True)
-    lamps = dali_scan(dalic)
+    lamps = dali_scan(dalic, max_lamps)
     for lamp in lamps:
         try:
             r = dalic.send(gear.QueryActualLevel(address.Short(lamp)))
