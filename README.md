@@ -40,5 +40,5 @@ sudo systemctl status dali2mqtt.service
 
 ### Command line arguments and configuration file
 
-When the daemon first runs, it creates a default `config.yaml` file.
+When the daemon first runs, it creates a default `config.ini` file.
 You can edit the file to customize your setup.
