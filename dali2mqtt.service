@@ -3,13 +3,13 @@ Description=dali2mqtt
 After=network.target
 
 [Service]
-ExecStart=/home/homeassistant/dali2mqtt/venv/bin/python3 dali-mqtt-daemon.py
-WorkingDirectory=/home/homeassistant/dali2mqtt
+ExecStart=python3 dali-mqtt-daemon.py
+WorkingDirectory=/dali2mqtt
 StandardOutput=inherit
 StandardError=inherit
 Environment=PYTHONUNBUFFERED=true
 Restart=always
-User=homeassistant
+User=root
 
 [Install]
 WantedBy=multi-user.target
