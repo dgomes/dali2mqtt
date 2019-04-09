@@ -97,7 +97,11 @@ def on_message_brightness_cmd(mosq, dalic, msg):
             raise ValueError
         logger.debug("Set light <%s> brightness to %s", light, level)
         r = dalic.send(gear.DAPC(address.Short(light), level))
-        mosq.publish(MQTT_STATE_TOPIC.format(MQTT_BASE_TOPIC, light), MQTT_PAYLOAD_ON, retain=True)
+        if level == 0:
+            # 0 in DALI is turn off with fade out
+            mosq.publish(MQTT_STATE_TOPIC.format(MQTT_BASE_TOPIC, light), MQTT_PAYLOAD_OFF, retain=True)
+        else:
+            mosq.publish(MQTT_STATE_TOPIC.format(MQTT_BASE_TOPIC, light), MQTT_PAYLOAD_ON, retain=True)
         mosq.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(MQTT_BASE_TOPIC, light), level, retain=True)
     except ValueError as e:
         logger.error("Can't convert <%s> to interger 0..255: %s", level, e)
