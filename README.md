@@ -28,7 +28,7 @@ sudo systemctl enable dali2mqtt.service
 sudo adduser homeassistant plugdev 
 cp 50-hasseb.rules /etc/udev/rules.d/
 ```
-You might need to reboot or device after the last change.
+You might need to reboot your device after the last change.
 
 In this example the user is **homeassistant**
 
