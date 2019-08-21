@@ -131,7 +131,7 @@ def main_loop(driver, max_lamps, mqtt_server, mqtt_port, ha_prefix):
         dalic = SyncHassebDALIUSBDriver()
     elif driver == TRIDONIC:
         from dali.driver.tridonic import SyncTridonicDALIUSBDriver
-        dalic = SyncTridonicDALIUSBDriver
+        dalic = SyncTridonicDALIUSBDriver()
 
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(client_id="dali2mqtt", userdata=dalic)
