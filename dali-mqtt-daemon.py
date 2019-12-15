@@ -19,7 +19,8 @@ from dali.command import YesNoResponse, Response
 
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
-DALI_DRIVERS = [HASSEB, TRIDONIC]
+DALI_SERVER = "dali_server"
+DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER]
 
 DEFAULT_MQTT_BASE_TOPIC = "dali2mqtt"
 DEFAULT_HA_DISCOVERY_PREFIX = "homeassistant"
@@ -132,6 +133,9 @@ def main_loop(driver, max_lamps, mqtt_server, mqtt_port, ha_prefix):
     elif driver == TRIDONIC:
         from dali.driver.tridonic import SyncTridonicDALIUSBDriver
         dalic = SyncTridonicDALIUSBDriver()
+    elif driver == DALI_SERVER:
+        from dali.driver.daliserver import DaliServer
+        dalic = DaliServer("localhost", 55825)    
 
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(client_id="dali2mqtt", userdata=dalic)
