@@ -1,3 +1,5 @@
+pyusb
 paho-mqtt==1.4.0
-python-dali==0.6
+git+git://github.com/awelkie/pyhidapi.git#egg=pyhidapi
+git+git://github.com/sde1000/python-dali.git#egg=python-dali
 PyYAML==3.13
