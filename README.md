@@ -17,6 +17,8 @@ pip install -r requirements.txt
 ```
 
 ### Setup systemd
+edit dali2mqtt.service and change the path of python3 to the path of your venv, after:
+
 ```bash
 sudo cp dali2mqtt.service /etc/systemd/system/
 sudo systemctl daemon-reload
