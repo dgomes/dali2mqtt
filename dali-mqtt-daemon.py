@@ -186,6 +186,8 @@ if __name__ == "__main__":
         config[missing_key] = args.__dict__[missing_key]
         logger.info("Configuration file updated, please reload daemon")
     finally:
-        with io.open(args.config, 'w', encoding="utf8") as outfile:
-            yaml.dump(config, outfile, default_flow_style=False, allow_unicode=True)
-
+        try:
+            with io.open(args.config, 'w', encoding="utf8") as outfile:
+                yaml.dump(config, outfile, default_flow_style=False, allow_unicode=True)
+        except Exception as err:
+            logger.error(f"Could not save configuration: {err}")
