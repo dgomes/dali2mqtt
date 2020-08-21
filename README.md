@@ -16,6 +16,31 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Create a configuration file
+You can create a configuration file when you call the daemon the first time
+
+```bash
+venv/bin/python3 ./dali-mqtt-daemon.py
+```
+
+Then just edit the file accordingly. You can also create the file with the right values, by using the arguments of dali-mqtt-daemon.py:
+
+```
+  --config CONFIG       configuration file
+  --mqtt-server MQTT_SERVER
+                        MQTT server
+  --mqtt-port MQTT_PORT
+                        MQTT port
+  --mqtt-base-topic MQTT_BASE_TOPIC
+                        MQTT base topic
+  --dali-driver {hasseb,tridonic,dali_server}
+                        DALI device driver
+  --dali-lamps DALI_LAMPS
+                        Number of lamps to scan
+  --ha-discover-prefix HA_DISCOVER_PREFIX
+                        HA discover mqtt prefix
+```
+
 ### Setup systemd
 edit dali2mqtt.service and change the path of python3 to the path of your venv, after:
 
