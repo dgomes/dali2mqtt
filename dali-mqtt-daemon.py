@@ -119,8 +119,8 @@ def on_connect(client, dalic, flags, result, max_lamps=4, ha_prefix=DEFAULT_HA_D
             r = dalic.send(gear.QueryActualLevel(address.Short(lamp)))
             logger.debug("QueryActualLevel = %s", r.value)
             client.publish(HA_DISCOVERY_PREFIX.format(ha_prefix, lamp), gen_ha_config(lamp), retain=True)
-            client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(MQTT_BASE_TOPIC, lamp), r.value.as_integer, retain=True)
-            client.publish(MQTT_STATE_TOPIC.format(MQTT_BASE_TOPIC, lamp), MQTT_PAYLOAD_ON if r.value.as_integer > 0 else MQTT_PAYLOAD_OFF, retain=True)
+            client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(MQTT_BASE_TOPIC, lamp), r.value, retain=True)
+            client.publish(MQTT_STATE_TOPIC.format(MQTT_BASE_TOPIC, lamp), MQTT_PAYLOAD_ON if r.value > 0 else MQTT_PAYLOAD_OFF, retain=True)
         except Exception as e:
             logger.error("While initializing lamp<%s>: %s", lamp, e)
 
