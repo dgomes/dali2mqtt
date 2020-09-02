@@ -210,7 +210,7 @@ if __name__ == "__main__":
         exception_raised = True
         missing_key = e.args[0]
         config[missing_key] = args.__dict__[missing_key]
-        logger.info("Detected missing key in configuration file, please look at configuration file and reload demon")
+        logger.info("Detected missing key, configuration file updated")
     finally:
         if exception_raised:
             try:
