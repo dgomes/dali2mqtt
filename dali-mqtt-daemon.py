@@ -41,19 +41,13 @@ MQTT_NOT_AVAILABLE = "offline"
 HA_DISCOVERY_PREFIX="{}/light/dali2mqtt_{}/config"
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
-    def __init__(self, mqqt_client, config, config_file_name, driver_object):
+    def __init__(self):
         super().__init__()
-        self.mqqt_client = mqqt_client
-        self.config_file_name = config_file_name
-        self.driver_object = driver_object
-        self.config = config
+        self.mqqt_client = None
     
     def on_modified(self, event):
         logger.info("Detected changes in configuration file {}, reloading".format(event.src_path))
-        self.config = load_config_file(self.config_file_name)
-        self.mqqt_client.loop_stop()
-        self.mqqt_client = create_mqtt_client(self.driver_object, self.config["dali_lamps"], self.config["mqtt_server"], self.config["mqtt_port"], self.config["mqtt_base_topic"], self.config["ha_discover_prefix"])
-        self.mqqt_client.loop_start()
+        self.mqqt_client.disconnect()
 
 
 def load_config_file(path):
@@ -162,6 +156,12 @@ def create_mqtt_client(driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_ba
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
+def main_loop(config_file_name, driver_object, config_watchdog_event_handler):
+    while True:
+        config = load_config_file(config_file_name)
+        mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
+        config_watchdog_event_handler.mqqt_client = mqqtc
+        mqqtc.loop_forever()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -182,10 +182,7 @@ if __name__ == "__main__":
               "dali_lamps": args.dali_lamps,
               "ha_discover_prefix": args.ha_discover_prefix,
               }
-
     try:
-        config = load_config_file(args.config)
-
         driver_object = None
         driver = args.dali_driver
         logger.debug("Using <%s> driver", driver)
@@ -198,14 +195,12 @@ if __name__ == "__main__":
         elif driver == DALI_SERVER:
             from dali.driver.daliserver import DaliServer
             driver_object = DaliServer("localhost", 55825)    
-
-        mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
-        mqqtc.loop_start()
        
         watchdog_observer = Observer()
-        watchdog_event_handler = ConfigFileSystemEventHandler(mqqtc, config, args.config, driver_object)
+        watchdog_event_handler = ConfigFileSystemEventHandler()
         watchdog_observer.schedule(watchdog_event_handler, args.config)
         watchdog_observer.start()
+        main_loop(args.config, driver_object, watchdog_event_handler)
 
     except FileNotFoundError as e:
         try:
@@ -214,9 +209,7 @@ if __name__ == "__main__":
                 logger.info("Configuration file %s created, please reload daemon", args.config)
         except Exception as err:
             logger.error(f"Could not save configuration: {err}")   
-    
-    while True:
-        continue
+
 
 
 
