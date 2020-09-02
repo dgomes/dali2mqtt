@@ -45,7 +45,6 @@ class ConfigFileSystemEventHandler(FileSystemEventHandler):
         super().__init__()
         self.mqqt_client = None
 
-
 def load_config_file(path):
     with open(path, 'r') as stream:
         logger.debug("Loading configuration from <%s>", path)
@@ -182,6 +181,8 @@ if __name__ == "__main__":
               "dali_lamps": args.dali_lamps,
               "ha_discover_prefix": args.ha_discover_prefix,
               }
+
+    exception_raised = False
     try:
         driver_object = None
         driver = args.dali_driver
@@ -202,16 +203,18 @@ if __name__ == "__main__":
         watchdog_observer.schedule(watchdog_event_handler, args.config)
         watchdog_observer.start()
         main_loop(args.config, driver_object, watchdog_event_handler)
-        
     except FileNotFoundError as e:
-        try:
-            with io.open(args.config, 'w', encoding="utf8") as outfile:
-                yaml.dump(config, outfile, default_flow_style=False, allow_unicode=True)
-                logger.info("Configuration file %s created, please reload daemon", args.config)
-        except Exception as err:
-            logger.error(f"Could not save configuration: {err}")   
-
-
-
-
-    
+        exception_raised = True
+        logger.info("Configuration file %s created, please reload daemon", args.config)
+    except KeyError as e:
+        exception_raised = True
+        missing_key = e.args[0]
+        config[missing_key] = args.__dict__[missing_key]
+        logger.info("Detected missing key in configuration file, please look at configuration file and reload demon")
+    finally:
+        if exception_raised:
+            try:
+                with io.open(args.config, 'w', encoding="utf8") as outfile:
+                    yaml.dump(config, outfile, default_flow_style=False, allow_unicode=True)
+            except Exception as err:
+                logger.error(f"Could not save configuration: {err}")
