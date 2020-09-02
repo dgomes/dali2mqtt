@@ -155,12 +155,7 @@ def create_mqtt_client(driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_ba
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
-def main_loop(config_file_name, driver_object, config_watchdog_event_handler):
-    while True:
-        config = load_config_file(config_file_name)
-        mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
-        config_watchdog_event_handler.mqqt_client = mqqtc
-        mqqtc.loop_forever()
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -202,7 +197,12 @@ if __name__ == "__main__":
         watchdog_event_handler.on_modified = lambda event: on_detect_changes_in_config(event, watchdog_event_handler.mqqt_client)
         watchdog_observer.schedule(watchdog_event_handler, args.config)
         watchdog_observer.start()
-        main_loop(args.config, driver_object, watchdog_event_handler)
+        
+        while True:
+            config = load_config_file(args.config)
+            mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
+            watchdog_event_handler.mqqt_client = mqqtc
+            mqqtc.loop_forever()
     except FileNotFoundError as e:
         exception_raised = True
         logger.info("Configuration file %s created, please reload daemon", args.config)
