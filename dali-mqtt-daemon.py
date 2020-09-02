@@ -9,8 +9,6 @@ import yaml
 import json
 import io
 import re
-import asyncio
-import concurrent
 
 import paho.mqtt.client as mqtt
 
@@ -40,17 +38,15 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
-THREAD_EXECUTORS = 2
 HA_DISCOVERY_PREFIX="{}/light/dali2mqtt_{}/config"
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
-    def __init__(self, mqqt_client, config, config_file_name, driver_object, loop):
+    def __init__(self, mqqt_client, config, config_file_name, driver_object):
         super().__init__()
         self.mqqt_client = mqqt_client
         self.config_file_name = config_file_name
         self.driver_object = driver_object
         self.config = config
-        self.loop = loop
     
     def on_modified(self, event):
         logger.info("Detected changes in configuration file {}, reloading".format(event.src_path))
@@ -166,7 +162,8 @@ def create_mqtt_client(driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_ba
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
-async def main(loop, executor):
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="configuration file", default="config.ini")
     parser.add_argument("--mqtt-server", help="MQTT server", default="localhost")
@@ -204,11 +201,12 @@ async def main(loop, executor):
 
         mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
         mqqtc.loop_start()
-
+       
         watchdog_observer = Observer()
-        watchdog_event_handler = ConfigFileSystemEventHandler(mqqtc, config, args.config, driver_object, loop)
+        watchdog_event_handler = ConfigFileSystemEventHandler(mqqtc, config, args.config, driver_object)
         watchdog_observer.schedule(watchdog_event_handler, args.config)
         watchdog_observer.start()
+
     except FileNotFoundError as e:
         try:
             with io.open(args.config, 'w', encoding="utf8") as outfile:
@@ -216,15 +214,10 @@ async def main(loop, executor):
                 logger.info("Configuration file %s created, please reload daemon", args.config)
         except Exception as err:
             logger.error(f"Could not save configuration: {err}")   
+    
     while True:
         continue
 
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    executor = concurrent.futures.ThreadPoolExecutor(THREAD_EXECUTORS)
-    loop.run_until_complete(main(loop, executor))
-    loop.close()
 
 
     
