@@ -44,10 +44,6 @@ class ConfigFileSystemEventHandler(FileSystemEventHandler):
     def __init__(self):
         super().__init__()
         self.mqqt_client = None
-    
-    def on_modified(self, event):
-        logger.info("Detected changes in configuration file {}, reloading".format(event.src_path))
-        self.mqqt_client.disconnect()
 
 
 def load_config_file(path):
@@ -94,6 +90,10 @@ def dali_scan(driver_object, max_range=4):
         except Exception as e:
             logger.warning("%s not present: %s", lamp, e)
     return lamps
+
+def on_detect_changes_in_config(event, mqqt_client):
+    logger.info("Detected changes in configuration file {}, reloading".format(event.src_path))
+    mqqt_client.disconnect()
 
 def on_message_cmd(mosq, data_object, msg):
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
@@ -198,10 +198,11 @@ if __name__ == "__main__":
        
         watchdog_observer = Observer()
         watchdog_event_handler = ConfigFileSystemEventHandler()
+        watchdog_event_handler.on_modified = lambda event: on_detect_changes_in_config(event, watchdog_event_handler.mqqt_client)
         watchdog_observer.schedule(watchdog_event_handler, args.config)
         watchdog_observer.start()
         main_loop(args.config, driver_object, watchdog_event_handler)
-
+        
     except FileNotFoundError as e:
         try:
             with io.open(args.config, 'w', encoding="utf8") as outfile:
