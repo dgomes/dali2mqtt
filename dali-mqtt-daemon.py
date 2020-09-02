@@ -78,14 +78,18 @@ log_format = '%(asctime)s %(levelname)s: %(message)s'
 logging.basicConfig(format=log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def dali_scan(driver_object, max_range=4):
+def dali_scan(driver_object, dali_bus_size=64, max_range=4):
     lamps = []
-    for lamp in range(0,max_range):
+    for lamp in range(0, dali_bus_size):
         try:
             logging.debug("Search for Lamp {}".format(lamp))
             r = driver_object.send(gear.QueryControlGearPresent(address.Short(lamp)))
             if isinstance(r, YesNoResponse) and r.value:
-                lamps.append(lamp)
+                if len(lamps) >= max_range:
+                    logger.warning("Script reaches maximum amount of lamps ({}) but on dali bus is connected more lamps".format(max_range))
+                    logger.warning("Due this, lamp {} isn't handled by script".format(lamp))
+                else:
+                    lamps.append(lamp)
         except Exception as e:
             logger.warning("%s not present: %s", lamp, e)
     return lamps
@@ -126,12 +130,12 @@ def on_message_brightness_cmd(mosq, data_object, msg):
 def on_message(mosq, data_object, msg):
     logger.error("Don't publish to %s", msg.topic)
 
-def on_connect(client, data_object, flags, result, max_lamps=4, ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX):
+def on_connect(client, data_object, flags, result, dali_bus_size, max_lamps=4, ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX):
     mqqt_base_topic = data_object['base_topic']
     driver_object = data_object['driver']
     client.subscribe([(MQTT_COMMAND_TOPIC.format(mqqt_base_topic, "+"),0), (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqqt_base_topic, "+"),0)])
     client.publish(MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic),MQTT_AVAILABLE,retain=True)
-    lamps = dali_scan(driver_object, max_lamps)
+    lamps = dali_scan(driver_object, dali_bus_size, max_lamps)
     for lamp in lamps:
         try:
             r = driver_object.send(gear.QueryActualLevel(address.Short(lamp)))
@@ -139,14 +143,15 @@ def on_connect(client, data_object, flags, result, max_lamps=4, ha_prefix=DEFAUL
             client.publish(HA_DISCOVERY_PREFIX.format(ha_prefix, lamp), gen_ha_config(lamp, mqqt_base_topic), retain=True)
             client.publish(MQTT_BRIGHTNESS_STATE_TOPIC.format(mqqt_base_topic, lamp), r.value, retain=True)
             client.publish(MQTT_STATE_TOPIC.format(mqqt_base_topic, lamp), MQTT_PAYLOAD_ON if r.value > 0 else MQTT_PAYLOAD_OFF, retain=True)
+            logger.info("Lamp {} initialized, brightness level {}".format(lamp, r.value))
         except Exception as e:
             logger.error("While initializing lamp<%s>: %s", lamp, e)
 
-def create_mqtt_client(driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_base_topic, ha_prefix):
+def create_mqtt_client(driver_object, dali_bus_size, max_lamps, mqtt_server, mqtt_port, mqqt_base_topic, ha_prefix):
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(client_id="dali2mqtt", userdata={'driver': driver_object, 'base_topic': mqqt_base_topic})
     mqttc.will_set(MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic),MQTT_NOT_AVAILABLE,retain=True)
-    mqttc.on_connect = lambda a,b,c,d: on_connect(a,b,c,d, max_lamps, ha_prefix)
+    mqttc.on_connect = lambda a,b,c,d: on_connect(a,b,c,d, dali_bus_size, max_lamps, ha_prefix)
 
     # Add message callbacks that will only trigger on a specific subscription match.
     mqttc.message_callback_add(MQTT_COMMAND_TOPIC.format(mqqt_base_topic, '+'), on_message_cmd)
@@ -164,6 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--mqtt-port", help="MQTT port", type=int, default=1883)
     parser.add_argument("--mqtt-base-topic", help="MQTT base topic", default=DEFAULT_MQTT_BASE_TOPIC)
     parser.add_argument("--dali-driver", help="DALI device driver", choices=DALI_DRIVERS, default=HASSEB)
+    parser.add_argument("--dali-bus-size", help="Maximum number of lamps on dali bus", type=int, default=64)
     parser.add_argument("--dali-lamps", help="Number of lamps to scan", type=int, default=4)
     parser.add_argument("--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant")
 
@@ -173,6 +179,7 @@ if __name__ == "__main__":
               "mqtt_port": args.mqtt_port,
               "mqtt_base_topic": args.mqtt_base_topic,
               "dali_driver": args.dali_driver,
+              "dali_bus_size": args.dali_bus_size,
               "dali_lamps": args.dali_lamps,
               "ha_discover_prefix": args.ha_discover_prefix,
               }
@@ -200,7 +207,7 @@ if __name__ == "__main__":
         
         while True:
             config = load_config_file(args.config)
-            mqqtc = create_mqtt_client(driver_object, config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
+            mqqtc = create_mqtt_client(driver_object, config["dali_bus_size"], config["dali_lamps"], config["mqtt_server"], config["mqtt_port"], config["mqtt_base_topic"], config["ha_discover_prefix"])
             watchdog_event_handler.mqqt_client = mqqtc
             mqqtc.loop_forever()
     except FileNotFoundError as e:
