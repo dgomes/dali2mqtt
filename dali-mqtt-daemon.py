@@ -11,8 +11,6 @@ import io
 import re
 import asyncio
 import concurrent
-import os
-import time
 
 import paho.mqtt.client as mqtt
 
@@ -42,6 +40,7 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
+THREAD_EXECUTORS = 2
 HA_DISCOVERY_PREFIX="{}/light/dali2mqtt_{}/config"
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
@@ -91,7 +90,7 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 log_format = '%(asctime)s %(levelname)s: %(message)s'
-logging.basicConfig(format=log_format, level=logging.DEBUG)
+logging.basicConfig(format=log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def dali_scan(driver_object, max_range=4):
@@ -223,7 +222,7 @@ async def main(loop, executor):
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    executor = concurrent.futures.ThreadPoolExecutor(os.cpu_count() * 5)
+    executor = concurrent.futures.ThreadPoolExecutor(THREAD_EXECUTORS)
     loop.run_until_complete(main(loop, executor))
     loop.close()
 
