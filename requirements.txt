@@ -1,7 +1,7 @@
 paho-mqtt==1.4.0
 pathtools==0.1.2
 git+git://github.com/awelkie/pyhidapi@master#egg=pyhidapi==1.0.0
-python-dali==0.7
+python-dali==0.7.1
 pyusb==1.0.2
 PyYAML==3.13
 watchdog==0.10.3
