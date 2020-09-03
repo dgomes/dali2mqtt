@@ -10,6 +10,8 @@ import json
 import logging
 import re
 import yaml
+import random
+import time
 
 import paho.mqtt.client as mqtt
 import dali.address as address
@@ -36,6 +38,8 @@ from consts import (
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
     TRIDONIC,
+    MIN_BACKOFF_TIME,
+    MAX_RETRIES
 )
 
 RESET_COLOR = "\x1b[0m"
@@ -253,6 +257,7 @@ def main(config):
     try:
         dali_driver = None
         logger.debug("Using <%s> driver", config["dali_driver"])
+
         if config["dali_driver"] == HASSEB:
             from dali.driver.hasseb import SyncHassebDALIUSBDriver
 
@@ -274,7 +279,10 @@ def main(config):
         watchdog_observer.schedule(watchdog_event_handler, config["config"])
         watchdog_observer.start()
 
-        while True:
+        should_backoff = True
+        retries = 0
+        run = True
+        while run:
             config = load_config_file(config["config"])
             mqqtc = create_mqtt_client(
                 dali_driver,
@@ -286,6 +294,13 @@ def main(config):
             )
             watchdog_event_handler.mqqt_client = mqqtc
             mqqtc.loop_forever()
+            if should_backoff:
+                if retries == MAX_RETRIES:
+                    run = False
+                delay = MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
+                time.sleep(delay)
+                retries+=1 #TODO reset on successfull connection
+
     except FileNotFoundError:
         exception_raised = True
         logger.info("Configuration file %s created, please reload daemon", config["config"])
@@ -303,7 +318,6 @@ def main(config):
                     )
             except Exception as err:
                 logger.error("Could not save configuration: %s", err)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -18,3 +18,6 @@ MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
+
+MIN_BACKOFF_TIME = 2
+MAX_RETRIES = 10
