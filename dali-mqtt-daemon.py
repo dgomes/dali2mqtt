@@ -26,6 +26,7 @@ from consts import (
     DEFAULT_MQTT_BASE_TOPIC,
     HA_DISCOVERY_PREFIX,
     HASSEB,
+    MIN_HASSEB_FIRMWARE_VERSION,
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
@@ -171,7 +172,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
 
 
-def on_message(mqtt_client, data_object, msg): # pylint: disable=W0613
+def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
@@ -183,7 +184,7 @@ def on_connect(
     result,
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-): # pylint: disable=W0613,R0913
+):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
@@ -296,6 +297,14 @@ if __name__ == "__main__":
             from dali.driver.hasseb import SyncHassebDALIUSBDriver
 
             dali_driver = SyncHassebDALIUSBDriver()
+            firmware_version = float(dali_driver.readFirmwareVersion())
+            if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
+                logger.error("Using a script requires newest hasseb firmware")
+                logger.error(
+                    "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
+                )
+                quit(1)
+
         elif args.dali_driver == TRIDONIC:
             from dali.driver.tridonic import SyncTridonicDALIUSBDriver
 
