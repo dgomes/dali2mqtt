@@ -1,4 +1,3 @@
-"""Constants common the various modules."""
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"
@@ -18,3 +17,5 @@ MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
+
+MIN_HASSEB_FIRMWARE_VERSION = 2.3

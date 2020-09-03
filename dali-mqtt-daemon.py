@@ -26,6 +26,7 @@ from consts import (
     DEFAULT_MQTT_BASE_TOPIC,
     HA_DISCOVERY_PREFIX,
     HASSEB,
+    MIN_HASSEB_FIRMWARE_VERSION,
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
@@ -88,8 +89,8 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
 
 
@@ -171,7 +172,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
 
 
-def on_message(mqtt_client, data_object, msg): # pylint: disable=W0613
+def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
@@ -183,7 +184,7 @@ def on_connect(
     result,
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-): # pylint: disable=W0613,R0913
+):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
@@ -266,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
     )
+    parser.add_argument("--log-level", help="Log level", default="info")
     parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
@@ -289,6 +291,20 @@ if __name__ == "__main__":
     }
 
     exception_raised = False
+    all_supported_log_levels = {
+        "critical": logging.CRITICAL,
+        "error": logging.ERROR,
+        "warning": logging.WARNING,
+        "info": logging.INFO,
+        "debug": logging.DEBUG,
+    }
+    args.log_level = args.log_level.lower()
+    if args.log_level not in all_supported_log_levels:
+        logger.error(
+            "Unsupported log level {}! Changed to level info".format(args.log_level)
+        )
+        args.log_level = "info"
+    logger.setLevel(all_supported_log_levels[args.log_level])
     try:
         dali_driver = None
         logger.debug("Using <%s> driver", args.dali_driver)
@@ -296,6 +312,14 @@ if __name__ == "__main__":
             from dali.driver.hasseb import SyncHassebDALIUSBDriver
 
             dali_driver = SyncHassebDALIUSBDriver()
+            firmware_version = float(dali_driver.readFirmwareVersion())
+            if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
+                logger.error("Using a script requires newest hasseb firmware")
+                logger.error(
+                    "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
+                )
+                quit(1)
+
         elif args.dali_driver == TRIDONIC:
             from dali.driver.tridonic import SyncTridonicDALIUSBDriver
 
@@ -341,4 +365,4 @@ if __name__ == "__main__":
                         config, outfile, default_flow_style=False, allow_unicode=True
                     )
             except Exception as err:
-                logger.error("Could not save configuration: %s", err)
+                logger.error("Co
