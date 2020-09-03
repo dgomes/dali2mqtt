@@ -248,6 +248,62 @@ def create_mqtt_client(
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
+def main(config):
+    exception_raised = False
+    try:
+        dali_driver = None
+        logger.debug("Using <%s> driver", config["dali_driver"])
+        if config["dali_driver"] == HASSEB:
+            from dali.driver.hasseb import SyncHassebDALIUSBDriver
+
+            dali_driver = SyncHassebDALIUSBDriver()
+        elif config["dali_driver"] == TRIDONIC:
+            from dali.driver.tridonic import SyncTridonicDALIUSBDriver
+
+            dali_driver = SyncTridonicDALIUSBDriver()
+        elif config["dali_driver"] == DALI_SERVER:
+            from dali.driver.daliserver import DaliServer
+
+            dali_driver = DaliServer("localhost", 55825)
+
+        watchdog_observer = Observer()
+        watchdog_event_handler = ConfigFileSystemEventHandler()
+        watchdog_event_handler.on_modified = lambda event: on_detect_changes_in_config(
+            event, watchdog_event_handler.mqqt_client
+        )
+        watchdog_observer.schedule(watchdog_event_handler, config["config"])
+        watchdog_observer.start()
+
+        while True:
+            config = load_config_file(config["config"])
+            mqqtc = create_mqtt_client(
+                dali_driver,
+                config["dali_lamps"],
+                config["mqtt_server"],
+                config["mqtt_port"],
+                config["mqtt_base_topic"],
+                config["ha_discover_prefix"],
+            )
+            watchdog_event_handler.mqqt_client = mqqtc
+            mqqtc.loop_forever()
+    except FileNotFoundError:
+        exception_raised = True
+        logger.info("Configuration file %s created, please reload daemon", config["config"])
+    except KeyError as err:
+        exception_raised = True
+        missing_key = err.args[0]
+        #config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
+        logger.info("<%s> key missing, configuration file updated", missing_key)
+    finally:
+        if exception_raised:
+            try:
+                with io.open(config["config"], "w", encoding="utf8") as outfile:
+                    yaml.dump(
+                        config, outfile, default_flow_style=False, allow_unicode=True
+                    )
+            except Exception as err:
+                logger.error("Could not save configuration: %s", err)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -280,6 +336,7 @@ if __name__ == "__main__":
         )
 
     config = {
+        "config": args.config,
         "mqtt_server": args.mqtt_server,
         "mqtt_port": args.mqtt_port,
         "mqtt_base_topic": args.mqtt_base_topic,
@@ -288,57 +345,4 @@ if __name__ == "__main__":
         "ha_discover_prefix": args.ha_discover_prefix,
     }
 
-    exception_raised = False
-    try:
-        dali_driver = None
-        logger.debug("Using <%s> driver", args.dali_driver)
-        if args.dali_driver == HASSEB:
-            from dali.driver.hasseb import SyncHassebDALIUSBDriver
-
-            dali_driver = SyncHassebDALIUSBDriver()
-        elif args.dali_driver == TRIDONIC:
-            from dali.driver.tridonic import SyncTridonicDALIUSBDriver
-
-            dali_driver = SyncTridonicDALIUSBDriver()
-        elif args.dali_driver == DALI_SERVER:
-            from dali.driver.daliserver import DaliServer
-
-            dali_driver = DaliServer("localhost", 55825)
-
-        watchdog_observer = Observer()
-        watchdog_event_handler = ConfigFileSystemEventHandler()
-        watchdog_event_handler.on_modified = lambda event: on_detect_changes_in_config(
-            event, watchdog_event_handler.mqqt_client
-        )
-        watchdog_observer.schedule(watchdog_event_handler, args.config)
-        watchdog_observer.start()
-
-        while True:
-            config = load_config_file(args.config)
-            mqqtc = create_mqtt_client(
-                dali_driver,
-                config["dali_lamps"],
-                config["mqtt_server"],
-                config["mqtt_port"],
-                config["mqtt_base_topic"],
-                config["ha_discover_prefix"],
-            )
-            watchdog_event_handler.mqqt_client = mqqtc
-            mqqtc.loop_forever()
-    except FileNotFoundError:
-        exception_raised = True
-        logger.info("Configuration file %s created, please reload daemon", args.config)
-    except KeyError as err:
-        exception_raised = True
-        missing_key = err.args[0]
-        config[missing_key] = args.__dict__[missing_key]
-        logger.info("<%s> key missing, configuration file updated", missing_key)
-    finally:
-        if exception_raised:
-            try:
-                with io.open(args.config, "w", encoding="utf8") as outfile:
-                    yaml.dump(
-                        config, outfile, default_flow_style=False, allow_unicode=True
-                    )
-            except Exception as err:
-                logger.error("Could not save configuration: %s", err)
+    main(config)
