@@ -46,6 +46,7 @@ YELLOW_COLOR = "\x1b[33;21m"
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
     """Event Handler for config file changes."""
+
     def __init__(self):
         super().__init__()
         self.mqqt_client = None
@@ -89,7 +90,7 @@ def gen_ha_config(light, mqtt_base_topic):
 
 
 log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format, level=logging.INFO)
+logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
 
 
@@ -266,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
     )
+    parser.add_argument("--log-level", help="Log level", default="info")
     parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
@@ -290,6 +292,21 @@ if __name__ == "__main__":
 
     exception_raised = False
     try:
+        all_supported_log_levels = {
+            "critical": logging.CRITICAL,
+            "error": logging.ERROR,
+            "warning": logging.WARNING,
+            "info": logging.INFO,
+            "debug": logging.DEBUG,
+        }
+        args.log_level = args.log_level.lower()
+        if args.log_level not in all_supported_log_levels:
+            logger.error(
+                "Unsupported log level {}! Changed to level info".format(args.log_level)
+            )
+            args.log_level = "info"
+        logger.setLevel(all_supported_log_levels[args.log_level])
+
         driver_object = None
         driver = args.dali_driver
         logger.debug("Using <%s> driver", driver)
