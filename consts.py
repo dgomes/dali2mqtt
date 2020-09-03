@@ -1,3 +1,5 @@
+import logging
+
 """Constants common the various modules."""
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
@@ -20,3 +22,10 @@ MQTT_NOT_AVAILABLE = "offline"
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
+ALL_SUPPORTED_LOG_LEVELS = {
+    "critical": logging.CRITICAL,
+    "error": logging.ERROR,
+    "warning": logging.WARNING,
+    "info": logging.INFO,
+    "debug": logging.DEBUG,
+}

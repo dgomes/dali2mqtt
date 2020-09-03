@@ -36,6 +36,7 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
 )
 
@@ -89,8 +90,8 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
 
 
@@ -267,6 +268,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
     )
+    parser.add_argument(
+        "--log-level",
+        help="Log level",
+        choices=ALL_SUPPORTED_LOG_LEVELS,
+        default="info",
+    )
     parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
@@ -290,6 +297,7 @@ if __name__ == "__main__":
     }
 
     exception_raised = False
+    logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[args.log_level])
     try:
         dali_driver = None
         logger.debug("Using <%s> driver", args.dali_driver)
