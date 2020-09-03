@@ -22,6 +22,10 @@ from watchdog.events import FileSystemEventHandler
 
 from consts import *
 
+RESET_COLOR = "\x1b[0m"
+RED_COLOR = "\x1b[31;21m"
+YELLOW_COLOR = "\x1b[33;21m"
+
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
     def __init__(self):
@@ -64,7 +68,7 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-log_format = "%(asctime)s %(levelname)s: %(message)s"
+log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
 logging.basicConfig(format=log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -235,8 +239,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
     )
+    parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
+
+    if args.log_color:
+        logging.addLevelName(
+            logging.WARNING,
+            "{}{}".format(YELLOW_COLOR, logging.getLevelName(logging.WARNING)),
+        )
+        logging.addLevelName(
+            logging.ERROR, "{}{}".format(RED_COLOR, logging.getLevelName(logging.ERROR))
+        )
 
     config = {
         "mqtt_server": args.mqtt_server,
