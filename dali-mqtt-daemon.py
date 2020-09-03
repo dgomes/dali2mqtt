@@ -299,7 +299,7 @@ if __name__ == "__main__":
             dali_driver = SyncHassebDALIUSBDriver()
             firmware_version = float(dali_driver.readFirmwareVersion())
             if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
-                logger.error("Using a script requires newest hasseb firmware")
+                logger.error("Using dali2mqtt requires newest hasseb firmware")
                 logger.error(
                     "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
                 )
