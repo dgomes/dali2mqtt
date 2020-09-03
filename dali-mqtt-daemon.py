@@ -27,6 +27,7 @@ from consts import (
     DALI_DRIVERS,
     DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_HA_DISCOVERY_PREFIX,
+    HA_DISCOVERY_PREFIX,
     MQTT_DALI2MQTT_STATUS,
     MQTT_STATE_TOPIC,
     MQTT_COMMAND_TOPIC,
@@ -44,18 +45,21 @@ YELLOW_COLOR = "\x1b[33;21m"
 
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
+    """Event Handler for config file changes."""
     def __init__(self):
         super().__init__()
         self.mqqt_client = None
 
 
 def load_config_file(path):
+    """Load configuration from yaml file."""
     with open(path, "r") as stream:
         logger.debug("Loading configuration from <%s>", path)
         return yaml.load(stream)
 
 
 def gen_ha_config(light, mqtt_base_topic):
+    """Generate a automatic configuration for Home Assistant."""
     json_config = {
         "name": "DALI Light {}".format(light),
         "unique_id": "DALI2MQTT_LIGHT_{}".format(light),
@@ -90,6 +94,7 @@ logger = logging.getLogger(__name__)
 
 
 def dali_scan(driver_object, max_range=4):
+    """Scan a maximum number of dali devices."""
     lamps = []
     for lamp in range(0, max_range):
         try:
@@ -103,6 +108,7 @@ def dali_scan(driver_object, max_range=4):
 
 
 def on_detect_changes_in_config(event, mqqt_client):
+    """Callback when changes are detected in the configuration file."""
     logger.info(
         "Detected changes in configuration file {}, reloading".format(event.src_path)
     )
@@ -110,6 +116,7 @@ def on_detect_changes_in_config(event, mqqt_client):
 
 
 def on_message_cmd(mosq, data_object, msg):
+    """Callback on MQTT command message."""
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
     light = int(
         re.search(
@@ -130,6 +137,7 @@ def on_message_cmd(mosq, data_object, msg):
 
 
 def on_message_brightness_cmd(mosq, data_object, msg):
+    """Callback on MQTT brightness command message."""
     logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
     light = int(
         re.search(
@@ -166,6 +174,7 @@ def on_message_brightness_cmd(mosq, data_object, msg):
 
 
 def on_message(mosq, data_object, msg):
+    """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
 
@@ -177,6 +186,7 @@ def on_connect(
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
 ):
+    """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
     client.subscribe(
@@ -215,6 +225,7 @@ def on_connect(
 def create_mqtt_client(
     driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_base_topic, ha_prefix
 ):
+    """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(
         client_id="dali2mqtt",
