@@ -88,13 +88,8 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-<<<<<<< HEAD
 log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
 logging.basicConfig(format=log_format)
-=======
-LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
->>>>>>> 41121dd6764dede58862c780c99ca1542c2fcb6b
 logger = logging.getLogger(__name__)
 
 
@@ -176,7 +171,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
 
 
-def on_message(mqtt_client, data_object, msg): # pylint: disable=W0613
+def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
@@ -188,7 +183,7 @@ def on_connect(
     result,
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-): # pylint: disable=W0613,R0913
+):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
