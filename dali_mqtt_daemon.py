@@ -37,6 +37,7 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
     MAX_RETRIES
@@ -92,8 +93,8 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
 
 
@@ -175,7 +176,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
 
 
-def on_message(mqtt_client, data_object, msg): # pylint: disable=W0613
+def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
@@ -187,7 +188,7 @@ def on_connect(
     result,
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-): # pylint: disable=W0613,R0913
+):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
@@ -254,6 +255,7 @@ def create_mqtt_client(
 
 def main(config):
     exception_raised = False
+    logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[args.log_level])
     try:
         dali_driver = None
         logger.debug("Using <%s> driver", config["dali_driver"])
@@ -335,6 +337,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
+    )
+    parser.add_argument(
+        "--log-level",
+        help="Log level",
+        choices=ALL_SUPPORTED_LOG_LEVELS,
+        default="info",
     )
     parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
