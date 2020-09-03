@@ -35,6 +35,7 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
 )
 
@@ -266,7 +267,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
     )
-    parser.add_argument("--log-level", help="Log level", default="info")
+    parser.add_argument(
+        "--log-level",
+        help="Log level",
+        choices=ALL_SUPPORTED_LOG_LEVELS,
+        default="info",
+    )
     parser.add_argument("--log-color", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
@@ -290,20 +296,7 @@ if __name__ == "__main__":
     }
 
     exception_raised = False
-    all_supported_log_levels = {
-        "critical": logging.CRITICAL,
-        "error": logging.ERROR,
-        "warning": logging.WARNING,
-        "info": logging.INFO,
-        "debug": logging.DEBUG,
-    }
-    args.log_level = args.log_level.lower()
-    if args.log_level not in all_supported_log_levels:
-        logger.error(
-            "Unsupported log level {}! Changed to level info".format(args.log_level)
-        )
-        args.log_level = "info"
-    logger.setLevel(all_supported_log_levels[args.log_level])
+    logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[args.log_level])
     try:
         dali_driver = None
         logger.debug("Using <%s> driver", args.dali_driver)
