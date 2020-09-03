@@ -1,3 +1,4 @@
+"""Constants common the various modules."""
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"

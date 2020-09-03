@@ -1,42 +1,41 @@
 #!/usr/bin/env python3
+"""Bridge between a DALI controller and an MQTT bus."""
 __author__ = "Diogo Gomes"
 __version__ = "0.0.1"
 __email__ = "diogogomes@gmail.com"
 
 import argparse
-import logging
-import yaml
-import json
 import io
+import json
+import logging
 import re
+import yaml
 
 import paho.mqtt.client as mqtt
-
-import dali.gear.general as gear
-import dali.exceptions
 import dali.address as address
-from dali.command import YesNoResponse, Response
-
-from watchdog.observers.polling import PollingObserver as Observer
+import dali.gear.general as gear
+from dali.command import YesNoResponse
+from dali.exceptions import DALIError
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers.polling import PollingObserver as Observer
 
 from consts import (
-    HASSEB,
-    TRIDONIC,
-    DALI_SERVER,
     DALI_DRIVERS,
-    DEFAULT_MQTT_BASE_TOPIC,
+    DALI_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
+    DEFAULT_MQTT_BASE_TOPIC,
     HA_DISCOVERY_PREFIX,
-    MQTT_DALI2MQTT_STATUS,
-    MQTT_STATE_TOPIC,
-    MQTT_COMMAND_TOPIC,
+    HASSEB,
+    MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
-    MQTT_PAYLOAD_ON,
-    MQTT_PAYLOAD_OFF,
-    MQTT_AVAILABLE,
+    MQTT_COMMAND_TOPIC,
+    MQTT_DALI2MQTT_STATUS,
     MQTT_NOT_AVAILABLE,
+    MQTT_PAYLOAD_OFF,
+    MQTT_PAYLOAD_ON,
+    MQTT_STATE_TOPIC,
+    TRIDONIC,
 )
 
 RESET_COLOR = "\x1b[0m"
@@ -89,34 +88,37 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
+<<<<<<< HEAD
 log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
 logging.basicConfig(format=log_format)
+=======
+LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+>>>>>>> 41121dd6764dede58862c780c99ca1542c2fcb6b
 logger = logging.getLogger(__name__)
 
 
-def dali_scan(driver_object, max_range=4):
+def dali_scan(driver, max_range=4):
     """Scan a maximum number of dali devices."""
     lamps = []
     for lamp in range(0, max_range):
         try:
-            logging.debug("Search for Lamp {}".format(lamp))
-            r = driver_object.send(gear.QueryControlGearPresent(address.Short(lamp)))
-            if isinstance(r, YesNoResponse) and r.value:
+            logging.debug("Search for Lamp %s", lamp)
+            present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
+            if isinstance(present, YesNoResponse) and present.value:
                 lamps.append(lamp)
-        except Exception as e:
-            logger.warning("%s not present: %s", lamp, e)
+        except DALIError as err:
+            logger.warning("%s not present: %s", lamp, err)
     return lamps
 
 
 def on_detect_changes_in_config(event, mqqt_client):
     """Callback when changes are detected in the configuration file."""
-    logger.info(
-        "Detected changes in configuration file {}, reloading".format(event.src_path)
-    )
+    logger.info("Detected changes in configuration file %s, reloading", event.src_path)
     mqqt_client.disconnect()
 
 
-def on_message_cmd(mosq, data_object, msg):
+def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
     light = int(
@@ -128,16 +130,16 @@ def on_message_cmd(mosq, data_object, msg):
         try:
             logger.debug("Set light <%s> to %s", light, msg.payload)
             data_object["driver"].send(gear.Off(address.Short(light)))
-            mosq.publish(
+            mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_OFF,
                 retain=True,
             )
-        except:
-            logger.error("Failed to set light <%s> to %s", light, "OFF")
+        except DALIError as err:
+            logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
 
 
-def on_message_brightness_cmd(mosq, data_object, msg):
+def on_message_brightness_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT brightness command message."""
     logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
     light = int(
@@ -151,30 +153,30 @@ def on_message_brightness_cmd(mosq, data_object, msg):
         if not 0 <= level <= 255:
             raise ValueError
         logger.debug("Set light <%s> brightness to %s", light, level)
-        r = data_object["driver"].send(gear.DAPC(address.Short(light), level))
+        data_object["driver"].send(gear.DAPC(address.Short(light), level))
         if level == 0:
             # 0 in DALI is turn off with fade out
-            mosq.publish(
+            mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_OFF,
                 retain=True,
             )
         else:
-            mosq.publish(
+            mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_ON,
                 retain=True,
             )
-        mosq.publish(
+        mqtt_client.publish(
             MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
             level,
             retain=True,
         )
-    except ValueError as e:
-        logger.error("Can't convert <%s> to interger 0..255: %s", level, e)
+    except ValueError as err:
+        logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
 
 
-def on_message(mosq, data_object, msg):
+def on_message(mqtt_client, data_object, msg): # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
 
@@ -186,7 +188,7 @@ def on_connect(
     result,
     max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-):
+): # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqqt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
@@ -202,8 +204,10 @@ def on_connect(
     lamps = dali_scan(driver_object, max_lamps)
     for lamp in lamps:
         try:
-            r = driver_object.send(gear.QueryActualLevel(address.Short(lamp)))
-            logger.debug("QueryActualLevel = %s", r.value)
+            actual_level = driver_object.send(
+                gear.QueryActualLevel(address.Short(lamp))
+            )
+            logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
                 gen_ha_config(lamp, mqqt_base_topic),
@@ -211,16 +215,16 @@ def on_connect(
             )
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqqt_base_topic, lamp),
-                r.value,
+                actual_level.value,
                 retain=True,
             )
             client.publish(
                 MQTT_STATE_TOPIC.format(mqqt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if r.value > 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
-        except Exception as e:
-            logger.error("While initializing lamp<%s>: %s", lamp, e)
+        except DALIError as err:
+            logger.error("While initializing lamp<%s>: %s", lamp, err)
 
 
 def create_mqtt_client(
@@ -291,37 +295,35 @@ if __name__ == "__main__":
     }
 
     exception_raised = False
+    all_supported_log_levels = {
+        "critical": logging.CRITICAL,
+        "error": logging.ERROR,
+        "warning": logging.WARNING,
+        "info": logging.INFO,
+        "debug": logging.DEBUG,
+    }
+    args.log_level = args.log_level.lower()
+    if args.log_level not in all_supported_log_levels:
+        logger.error(
+            "Unsupported log level {}! Changed to level info".format(args.log_level)
+        )
+        args.log_level = "info"
+    logger.setLevel(all_supported_log_levels[args.log_level])
     try:
-        all_supported_log_levels = {
-            "critical": logging.CRITICAL,
-            "error": logging.ERROR,
-            "warning": logging.WARNING,
-            "info": logging.INFO,
-            "debug": logging.DEBUG,
-        }
-        args.log_level = args.log_level.lower()
-        if args.log_level not in all_supported_log_levels:
-            logger.error(
-                "Unsupported log level {}! Changed to level info".format(args.log_level)
-            )
-            args.log_level = "info"
-        logger.setLevel(all_supported_log_levels[args.log_level])
-
-        driver_object = None
-        driver = args.dali_driver
-        logger.debug("Using <%s> driver", driver)
-        if driver == HASSEB:
+        dali_driver = None
+        logger.debug("Using <%s> driver", args.dali_driver)
+        if args.dali_driver == HASSEB:
             from dali.driver.hasseb import SyncHassebDALIUSBDriver
 
-            driver_object = SyncHassebDALIUSBDriver()
-        elif driver == TRIDONIC:
+            dali_driver = SyncHassebDALIUSBDriver()
+        elif args.dali_driver == TRIDONIC:
             from dali.driver.tridonic import SyncTridonicDALIUSBDriver
 
-            driver_object = SyncTridonicDALIUSBDriver()
-        elif driver == DALI_SERVER:
+            dali_driver = SyncTridonicDALIUSBDriver()
+        elif args.dali_driver == DALI_SERVER:
             from dali.driver.daliserver import DaliServer
 
-            driver_object = DaliServer("localhost", 55825)
+            dali_driver = DaliServer("localhost", 55825)
 
         watchdog_observer = Observer()
         watchdog_event_handler = ConfigFileSystemEventHandler()
@@ -334,7 +336,7 @@ if __name__ == "__main__":
         while True:
             config = load_config_file(args.config)
             mqqtc = create_mqtt_client(
-                driver_object,
+                dali_driver,
                 config["dali_lamps"],
                 config["mqtt_server"],
                 config["mqtt_port"],
@@ -343,14 +345,14 @@ if __name__ == "__main__":
             )
             watchdog_event_handler.mqqt_client = mqqtc
             mqqtc.loop_forever()
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         exception_raised = True
         logger.info("Configuration file %s created, please reload daemon", args.config)
-    except KeyError as e:
+    except KeyError as err:
         exception_raised = True
-        missing_key = e.args[0]
+        missing_key = err.args[0]
         config[missing_key] = args.__dict__[missing_key]
-        logger.info("Detected missing key, configuration file updated")
+        logger.info("<%s> key missing, configuration file updated", missing_key)
     finally:
         if exception_raised:
             try:
@@ -359,4 +361,4 @@ if __name__ == "__main__":
                         config, outfile, default_flow_style=False, allow_unicode=True
                     )
             except Exception as err:
-                logger.error(f"Could not save configuration: {err}")
+                logger.error("Could not save configuration: %s", err)
