@@ -20,25 +20,7 @@ from dali.command import YesNoResponse, Response
 from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 
-HASSEB = "hasseb"
-TRIDONIC = "tridonic"
-DALI_SERVER = "dali_server"
-DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER]
-
-DEFAULT_MQTT_BASE_TOPIC = "dali2mqtt"
-DEFAULT_HA_DISCOVERY_PREFIX = "homeassistant"
-
-MQTT_DALI2MQTT_STATUS = "{}/status"
-MQTT_STATE_TOPIC = "{}/{}/light/status"
-MQTT_COMMAND_TOPIC = "{}/{}/light/switch"
-MQTT_BRIGHTNESS_STATE_TOPIC = "{}/{}/light/brightness/status"
-MQTT_BRIGHTNESS_COMMAND_TOPIC = "{}/{}/light/brightness/set"
-MQTT_PAYLOAD_ON = b"ON"
-MQTT_PAYLOAD_OFF = b"OFF"
-MQTT_AVAILABLE = "online"
-MQTT_NOT_AVAILABLE = "offline"
-
-HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
+from consts import *
 
 
 class ConfigFileSystemEventHandler(FileSystemEventHandler):
@@ -74,9 +56,9 @@ def gen_ha_config(light, mqtt_base_topic):
         "device": {
             "identifiers": "dali2mqtt",
             "name": "DALI Lights",
-            "sw_version": "dali2mqtt 0.1",
+            "sw_version": f"dali2mqtt {__version__}",
             "model": "dali2mqtt",
-            "manufacturer": "diogogomes@gmail.com",
+            "manufacturer": f"{__author__} <{__email__}>",
         },
     }
     return json.dumps(json_config)
