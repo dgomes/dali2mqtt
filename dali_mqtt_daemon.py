@@ -40,7 +40,7 @@ from consts import (
     ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
-    MAX_RETRIES
+    MAX_RETRIES,
 )
 
 RESET_COLOR = "\x1b[0m"
@@ -110,6 +110,20 @@ def dali_scan(driver, max_range=4):
         except DALIError as err:
             logger.warning("%s not present: %s", lamp, err)
     return lamps
+
+
+def display_lamps_summary(max_range, lamps_dicts):
+    logger.info(
+        "Found {} lamps, scanned in range 0-{}, excepted to found {} lamps".format(
+            len(lamps_dicts), max_range, max_range
+        )
+    )
+    for lamp_dict in lamps_dicts:
+        logger.info(
+            "   - short address: {}, brightness level: {}".format(
+                lamp_dict["short_address"], lamp_dict["brightness"]
+            )
+        )
 
 
 def on_detect_changes_in_config(event, mqqt_client):
@@ -202,11 +216,12 @@ def on_connect(
         MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic), MQTT_AVAILABLE, retain=True
     )
     lamps = dali_scan(driver_object, max_lamps)
+    lamps_summary_list = []
     for lamp in lamps:
         try:
-            actual_level = driver_object.send(
-                gear.QueryActualLevel(address.Short(lamp))
-            )
+            short_address = address.Short(lamp)
+            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
+
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
@@ -218,13 +233,22 @@ def on_connect(
                 actual_level.value,
                 retain=True,
             )
+
             client.publish(
                 MQTT_STATE_TOPIC.format(mqqt_base_topic, lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
+            lamps_summary_list.append(
+                {
+                    "short_address": short_address.address,
+                    "brightness": actual_level.value,
+                }
+            )
+
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
+    display_lamps_summary(max_lamps, lamps_summary_list)
 
 
 def create_mqtt_client(
@@ -252,6 +276,7 @@ def create_mqtt_client(
     mqttc.on_message = on_message
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
+
 
 def main(config):
     exception_raised = False
@@ -301,15 +326,17 @@ def main(config):
                     run = False
                 delay = MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
                 time.sleep(delay)
-                retries+=1 #TODO reset on successfull connection
+                retries += 1  # TODO reset on successfull connection
 
     except FileNotFoundError:
         exception_raised = True
-        logger.info("Configuration file %s created, please reload daemon", config["config"])
+        logger.info(
+            "Configuration file %s created, please reload daemon", config["config"]
+        )
     except KeyError as err:
         exception_raised = True
         missing_key = err.args[0]
-        #config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
+        # config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
         logger.info("<%s> key missing, configuration file updated", missing_key)
     finally:
         if exception_raised:
@@ -320,6 +347,7 @@ def main(config):
                     )
             except Exception as err:
                 logger.error("Could not save configuration: %s", err)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
