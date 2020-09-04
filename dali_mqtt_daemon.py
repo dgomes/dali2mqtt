@@ -114,7 +114,7 @@ def dali_scan(driver, max_range=4):
 
 def display_lamps_summary(max_range, lamps_dicts):
     logger.info(
-        "Found {} lamps, scanned in range 0-{}, excepted to found {} lamps".format(
+        "Found {} lamps from excepted {}, scanned in range 0-{}".format(
             len(lamps_dicts), max_range, max_range
         )
     )
