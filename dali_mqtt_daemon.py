@@ -37,6 +37,9 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_MIN_PHYSICAL_LEVEL_TOPIC,
     ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
@@ -209,6 +212,15 @@ def on_connect(
             actual_level = driver_object.send(
                 gear.QueryActualLevel(address.Short(lamp))
             )
+            physical_minimum_level = driver_object.send(
+                gear.QueryPhysicalMinimum(address.Short(lamp))
+            )
+            minimum_brightness_level = driver_object.send(
+                gear.QueryMinLevel(address.Short(lamp))
+            )
+            maximum_brightness_level = driver_object.send(
+                gear.QueryMaxLevel(address.Short(lamp))
+            )
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
@@ -218,6 +230,21 @@ def on_connect(
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqqt_base_topic, lamp),
                 actual_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqqt_base_topic, lamp),
+                maximum_brightness_level,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqqt_base_topic, lamp),
+                minimum_brightness_level,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MIN_PHYSICAL_LEVEL_TOPIC.format(mqqt_base_topic, lamp),
+                physical_minimum_level,
                 retain=True,
             )
             client.publish(

@@ -19,6 +19,11 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
+MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC = "{}/{}/light/brightness/max_level"
+MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC = "{}/{}/light/brightness/min_level"
+MQTT_BRIGHTNESS_MIN_PHYSICAL_LEVEL_TOPIC = "{}/{}/light/brightness/min_physical_level"
+
+
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
 
 MIN_BACKOFF_TIME = 2
