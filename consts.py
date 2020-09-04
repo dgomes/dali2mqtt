@@ -22,6 +22,9 @@ MQTT_NOT_AVAILABLE = "offline"
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
+MIN_BACKOFF_TIME = 2
+MAX_RETRIES = 10
+
 ALL_SUPPORTED_LOG_LEVELS = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
