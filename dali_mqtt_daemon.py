@@ -112,20 +112,6 @@ def dali_scan(driver, max_range=4):
     return lamps
 
 
-def display_lamps_summary(max_range, lamps_dicts):
-    logger.info(
-        "Found {} lamps from excepted {}, scanned in range 0-{}".format(
-            len(lamps_dicts), max_range, max_range
-        )
-    )
-    for lamp_dict in lamps_dicts:
-        logger.info(
-            "   - short address: {}, brightness level: {}".format(
-                lamp_dict["short_address"], lamp_dict["brightness"]
-            )
-        )
-
-
 def on_detect_changes_in_config(event, mqqt_client):
     """Callback when changes are detected in the configuration file."""
     logger.info("Detected changes in configuration file %s, reloading", event.src_path)
@@ -216,7 +202,12 @@ def on_connect(
         MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic), MQTT_AVAILABLE, retain=True
     )
     lamps = dali_scan(driver_object, max_lamps)
-    lamps_summary_list = []
+    logger.info(
+        "Found %d lamps from excepted %d, scanned in range 0-%d",
+        len(lamps),
+        max_lamps,
+        max_lamps,
+    )
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
@@ -239,16 +230,14 @@ def on_connect(
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
-            lamps_summary_list.append(
-                {
-                    "short_address": short_address.address,
-                    "brightness": actual_level.value,
-                }
+            logger.info(
+                "   - short address: %d, brightness level: %d",
+                short_address.address,
+                actual_level.value,
             )
 
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
-    display_lamps_summary(max_lamps, lamps_summary_list)
 
 
 def create_mqtt_client(
