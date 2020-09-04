@@ -40,7 +40,7 @@ from consts import (
     ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
-    MAX_RETRIES
+    MAX_RETRIES,
 )
 
 RESET_COLOR = "\x1b[0m"
@@ -60,7 +60,9 @@ def load_config_file(path):
     """Load configuration from yaml file."""
     with open(path, "r") as stream:
         logger.debug("Loading configuration from <%s>", path)
-        return yaml.load(stream)
+        config = yaml.load(stream)
+        config["config"] = path
+        return config
 
 
 def gen_ha_config(light, mqtt_base_topic):
@@ -253,6 +255,7 @@ def create_mqtt_client(
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
+
 def main(config):
     exception_raised = False
     logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[args.log_level])
@@ -301,15 +304,17 @@ def main(config):
                     run = False
                 delay = MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
                 time.sleep(delay)
-                retries+=1 #TODO reset on successfull connection
+                retries += 1  # TODO reset on successfull connection
 
     except FileNotFoundError:
         exception_raised = True
-        logger.info("Configuration file %s created, please reload daemon", config["config"])
+        logger.info(
+            "Configuration file %s created, please reload daemon", config["config"]
+        )
     except KeyError as err:
         exception_raised = True
         missing_key = err.args[0]
-        #config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
+        # config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
         logger.info("<%s> key missing, configuration file updated", missing_key)
     finally:
         if exception_raised:
@@ -320,6 +325,7 @@ def main(config):
                     )
             except Exception as err:
                 logger.error("Could not save configuration: %s", err)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
