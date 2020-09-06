@@ -290,6 +290,7 @@ def main(args):
             time.sleep(delay())
             retries+=1 #TODO reset on successfull connection
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="configuration file", default=DEFAULT_CONFIG_FILE)
