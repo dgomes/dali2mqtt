@@ -17,7 +17,7 @@ from consts import (
     DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
-        DEFAULT_LOG_LEVEL,
+    DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     DEFAULT_DALI_DRIVER,
     DEFAULT_DALI_LAMPS,
@@ -34,16 +34,29 @@ CONF_HA_DISCOVERY_PREFIX = "ha_discovery_prefix"
 CONF_LOG_LEVEL = "log_level"
 CONF_LOG_COLOR = "log_color"
 
-CONF_SCHEMA = vol.Schema ({
-    vol.Required(CONF_MQTT_SERVER, default=DEFAULT_MQTT_SERVER): str,
-    vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
-    vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
-    vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(DALI_DRIVERS),
-    vol.Optional(CONF_DALI_LAMPS, default=DEFAULT_DALI_LAMPS): vol.All(vol.Coerce(int), vol.Range(min=1, max=64)), 
-    vol.Optional(CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX): str,
-    vol.Optional(CONF_LOG_LEVEL, default=DEFAULT_LOG_LEVEL): vol.In(ALL_SUPPORTED_LOG_LEVELS),
-    vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
-})
+CONF_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_MQTT_SERVER, default=DEFAULT_MQTT_SERVER): str,
+        vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=65535)
+        ),
+        vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
+        vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(
+            DALI_DRIVERS
+        ),
+        vol.Optional(CONF_DALI_LAMPS, default=DEFAULT_DALI_LAMPS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=64)
+        ),
+        vol.Optional(
+            CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX
+        ): str,
+        vol.Optional(CONF_LOG_LEVEL, default=DEFAULT_LOG_LEVEL): vol.In(
+            ALL_SUPPORTED_LOG_LEVELS
+        ),
+        vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
+    }
+)
+
 
 class Config:
     def __init__(self, args, callback=None):
@@ -79,7 +92,7 @@ class Config:
         watchdog_event_handler = FileSystemEventHandler()
         watchdog_event_handler.on_modified = lambda event: self.load_config_file()
         self._watchdog_observer.schedule(watchdog_event_handler, self._path)
-        self._watchdog_observer.start()      
+        self._watchdog_observer.start()
 
     def load_config_file(self):
         """Load configuration from yaml file."""
@@ -88,17 +101,20 @@ class Config:
             try:
                 configuration = yaml.load(infile)
                 if not configuration:
-                    logger.warning("Could not load a configuration from %s, creating a new one", self._path)
+                    logger.warning(
+                        "Could not load a configuration from %s, creating a new one",
+                        self._path,
+                    )
                     configuration = {}
                 self._config = CONF_SCHEMA(configuration)
                 self._callback()
             except AttributeError:
-                #No callback configured 
+                # No callback configured
                 pass
             except vol.MultipleInvalid as error:
                 logger.error("In configuration file %s: %s", self._path, error)
                 quit(1)
-    
+
     def save_config_file(self):
         """Save configuration back to yaml file."""
         try:
@@ -122,7 +138,11 @@ class Config:
 
     @property
     def mqtt_conf(self):
-        return self._config[CONF_MQTT_SERVER], self._config[CONF_MQTT_PORT], self._config[CONF_MQTT_BASE_TOPIC]
+        return (
+            self._config[CONF_MQTT_SERVER],
+            self._config[CONF_MQTT_PORT],
+            self._config[CONF_MQTT_BASE_TOPIC],
+        )
 
     @property
     def dali_driver(self):

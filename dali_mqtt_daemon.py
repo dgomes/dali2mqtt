@@ -29,7 +29,7 @@ from consts import (
     DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
-        DEFAULT_LOG_LEVEL,
+    DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     HA_DISCOVERY_PREFIX,
     HASSEB,
@@ -46,13 +46,16 @@ from consts import (
     TRIDONIC,
     MIN_BACKOFF_TIME,
     MAX_RETRIES,
-    RESET_COLOR, RED_COLOR, YELLOW_COLOR
+    RESET_COLOR,
+    RED_COLOR,
+    YELLOW_COLOR,
 )
 
 
 log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
 logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
+
 
 def gen_ha_config(light, mqtt_base_topic):
     """Generate a automatic configuration for Home Assistant."""
@@ -239,12 +242,14 @@ def create_mqtt_client(
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
+
 def delay():
     return MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
 
+
 def main(args):
     mqttc = None
-    config = Config(args, lambda : on_detect_changes_in_config(mqttc))
+    config = Config(args, lambda: on_detect_changes_in_config(mqttc))
 
     if config.log_color:
         logging.addLevelName(
@@ -288,14 +293,20 @@ def main(args):
             if retries == MAX_RETRIES:
                 run = False
             time.sleep(delay())
-            retries+=1 #TODO reset on successfull connection
+            retries += 1  # TODO reset on successfull connection
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", help="configuration file", default=DEFAULT_CONFIG_FILE)
-    parser.add_argument("--mqtt-server", help="MQTT server", default=DEFAULT_MQTT_SERVER)
-    parser.add_argument("--mqtt-port", help="MQTT port", type=int, default=DEFAULT_MQTT_PORT)
+    parser.add_argument(
+        "--config", help="configuration file", default=DEFAULT_CONFIG_FILE
+    )
+    parser.add_argument(
+        "--mqtt-server", help="MQTT server", default=DEFAULT_MQTT_SERVER
+    )
+    parser.add_argument(
+        "--mqtt-port", help="MQTT port", type=int, default=DEFAULT_MQTT_PORT
+    )
     parser.add_argument(
         "--mqtt-base-topic", help="MQTT base topic", default=DEFAULT_MQTT_BASE_TOPIC
     )
@@ -306,7 +317,9 @@ if __name__ == "__main__":
         "--dali-lamps", help="Number of lamps to scan", type=int, default=4
     )
     parser.add_argument(
-        "--ha-discovery-prefix", help="HA discovery mqtt prefix", default="homeassistant"
+        "--ha-discovery-prefix",
+        help="HA discovery mqtt prefix",
+        default="homeassistant",
     )
     parser.add_argument(
         "--log-level",
