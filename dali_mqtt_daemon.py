@@ -60,7 +60,9 @@ def load_config_file(path):
     """Load configuration from yaml file."""
     with open(path, "r") as stream:
         logger.debug("Loading configuration from <%s>", path)
-        return yaml.load(stream)
+        config = yaml.load(stream)
+        config["config"] = path
+        return config
 
 
 def gen_ha_config(light, mqtt_base_topic):
