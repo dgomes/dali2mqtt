@@ -568,9 +568,12 @@ if __name__ == "__main__":
     parser.add_argument(
         f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
     )
+<<<<<<< HEAD
     parser.add_argument(
         f"--{CONF_DEVICES_NAMES_FILE.replace('_','-')}", help="devices names file"
     )
+=======
+>>>>>>> 7d7f51c (black)
     parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
     parser.add_argument(
         f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
@@ -579,6 +582,7 @@ if __name__ == "__main__":
         f"--{CONF_MQTT_USERNAME.replace('_','-')}", help="MQTT username"
     )
     parser.add_argument(
+<<<<<<< HEAD
         f"--{CONF_MQTT_PASSWORD.replace('_','-')}", help="MQTT password"
     )
     parser.add_argument(
@@ -588,6 +592,16 @@ if __name__ == "__main__":
         f"--{CONF_DALI_DRIVER.replace('_','-')}",
         help="DALI device driver",
         choices=DALI_DRIVERS,
+=======
+        f"--{CONF_DALI_DRIVER.replace('_','-')}",
+        help="DALI device driver",
+        choices=DALI_DRIVERS,
+    )
+    parser.add_argument(
+        f"--{CONF_DALI_LAMPS.replace('_','-')}",
+        help="Number of lamps to scan",
+        type=int,
+>>>>>>> 7d7f51c (black)
     )
     parser.add_argument(
         f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",

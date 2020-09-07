@@ -26,8 +26,11 @@ from consts import (
     CONF_MQTT_BASE_TOPIC,
     CONF_MQTT_PORT,
     CONF_MQTT_SERVER,
+<<<<<<< HEAD
     CONF_MQTT_USERNAME,
     CONF_MQTT_PASSWORD,
+=======
+>>>>>>> 7d7f51c (black)
 )
 
 
