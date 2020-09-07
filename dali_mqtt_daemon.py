@@ -42,6 +42,7 @@ from consts import (
     CONF_MQTT_SERVER,
     HA_DISCOVERY_PREFIX,
     HASSEB,
+    MIN_HASSEB_FIRMWARE_VERSION,
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
@@ -278,6 +279,14 @@ def main(args):
         from dali.driver.hasseb import SyncHassebDALIUSBDriver
 
         dali_driver = SyncHassebDALIUSBDriver()
+
+        firmware_version = float(dali_driver.readFirmwareVersion())
+        if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
+            logger.error("Using dali2mqtt requires newest hasseb firmware")
+            logger.error(
+                "Please, look at https://github.com/hasseb/python-dali/tree/master/dali/driver/hasseb_firmware"
+            )
+            quit(1)
     elif config.dali_driver == TRIDONIC:
         from dali.driver.tridonic import SyncTridonicDALIUSBDriver
 
@@ -303,6 +312,7 @@ def main(args):
                 run = False
             time.sleep(delay())
             retries += 1  # TODO reset on successfull connection
+
 
 
 if __name__ == "__main__":
