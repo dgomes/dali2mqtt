@@ -27,6 +27,7 @@ from consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_PORT,
     DEFAULT_MQTT_SERVER,
+    DEFAULT_DALI_DRIVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_LOG_LEVEL,
@@ -311,7 +312,10 @@ if __name__ == "__main__":
         "--mqtt-base-topic", help="MQTT base topic", default=DEFAULT_MQTT_BASE_TOPIC
     )
     parser.add_argument(
-        "--dali-driver", help="DALI device driver", choices=DALI_DRIVERS, default=HASSEB
+        "--dali-driver",
+        help="DALI device driver",
+        choices=DALI_DRIVERS,
+        default=DEFAULT_DALI_DRIVER,
     )
     parser.add_argument(
         "--dali-lamps", help="Number of lamps to scan", type=int, default=4
@@ -319,7 +323,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ha-discovery-prefix",
         help="HA discovery mqtt prefix",
-        default="homeassistant",
+        default=DEFAULT_HA_DISCOVERY_PREFIX,
     )
     parser.add_argument(
         "--log-level",
@@ -327,7 +331,12 @@ if __name__ == "__main__":
         choices=ALL_SUPPORTED_LOG_LEVELS,
         default=DEFAULT_LOG_LEVEL,
     )
-    parser.add_argument("--log-color", help="Coloring output", action="store_true")
+    parser.add_argument(
+        "--log-color",
+        help="Coloring output",
+        action="store_true",
+        default=DEFAULT_LOG_COLOR,
+    )
 
     args = parser.parse_args()
 

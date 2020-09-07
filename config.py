@@ -69,21 +69,45 @@ class Config:
         self.load_config_file()
 
         # Overwrite with command line arguments
-        if self._config.get(CONF_MQTT_SERVER) != args.mqtt_server:
+        if (
+            self._config.get(CONF_MQTT_SERVER) != args.mqtt_server
+            and args.mqtt_server != DEFAULT_MQTT_SERVER
+        ):
             self._config[CONF_MQTT_SERVER] = args.mqtt_server
-        if self._config.get(CONF_MQTT_PORT) != args.mqtt_port:
+        if (
+            self._config.get(CONF_MQTT_PORT) != args.mqtt_port
+            and args.mqtt_port != DEFAULT_MQTT_PORT
+        ):
             self._config[CONF_MQTT_PORT] = args.mqtt_port
-        if self._config.get(CONF_MQTT_BASE_TOPIC) != args.mqtt_base_topic:
+        if (
+            self._config.get(CONF_MQTT_BASE_TOPIC) != args.mqtt_base_topic
+            and args.mqtt_base_topic != DEFAULT_MQTT_BASE_TOPIC
+        ):
             self._config[CONF_MQTT_BASE_TOPIC] = args.mqtt_base_topic
-        if self._config.get(CONF_DALI_DRIVER) != args.dali_driver:
+        if (
+            self._config.get(CONF_DALI_DRIVER) != args.dali_driver
+            and args.dali_driver != DEFAULT_DALI_DRIVER
+        ):
             self._config[CONF_DALI_DRIVER] = args.dali_driver
-        if self._config.get(CONF_DALI_LAMPS) != args.dali_lamps:
+        if (
+            self._config.get(CONF_DALI_LAMPS) != args.dali_lamps
+            and args.dali_lamps != DEFAULT_DALI_LAMPS
+        ):
             self._config[CONF_DALI_LAMPS] = args.dali_lamps
-        if self._config.get(CONF_HA_DISCOVERY_PREFIX) != args.ha_discovery_prefix:
+        if (
+            self._config.get(CONF_HA_DISCOVERY_PREFIX) != args.ha_discovery_prefix
+            and args.ha_discovery_prefix != DEFAULT_HA_DISCOVERY_PREFIX
+        ):
             self._config[CONF_HA_DISCOVERY_PREFIX] = args.ha_discovery_prefix
-        if self._config.get(CONF_LOG_LEVEL) != args.log_level:
+        if (
+            self._config.get(CONF_LOG_LEVEL) != args.log_level
+            and args.log_level != DEFAULT_LOG_LEVEL
+        ):
             self._config[CONF_LOG_LEVEL] = args.log_level
-        if self._config.get(CONF_LOG_COLOR) != args.log_color:
+        if (
+            self._config.get(CONF_LOG_COLOR) != args.log_color
+            and args.log_color != DEFAULT_LOG_COLOR
+        ):
             self._config[CONF_LOG_COLOR] = args.log_color
 
         self.save_config_file()
