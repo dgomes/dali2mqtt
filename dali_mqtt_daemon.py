@@ -18,14 +18,28 @@ import dali.address as address
 import dali.gear.general as gear
 from dali.command import YesNoResponse
 from dali.exceptions import DALIError
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers.polling import PollingObserver as Observer
+
+from config import Config
 
 from consts import (
     DALI_DRIVERS,
     DALI_SERVER,
+    DEFAULT_CONFIG_FILE,
+    DEFAULT_MQTT_PORT,
+    DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_LOG_COLOR,
+    CONF_CONFIG,
+    CONF_DALI_DRIVER,
+    CONF_DALI_LAMPS,
+    CONF_LOG_COLOR,
+    CONF_LOG_LEVEL,
+    CONF_HA_DISCOVERY_PREFIX,
+    CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PORT,
+    CONF_MQTT_SERVER,
     HA_DISCOVERY_PREFIX,
     HASSEB,
     MIN_HASSEB_FIRMWARE_VERSION,
@@ -42,26 +56,15 @@ from consts import (
     TRIDONIC,
     MIN_BACKOFF_TIME,
     MAX_RETRIES,
+    RESET_COLOR,
+    RED_COLOR,
+    YELLOW_COLOR,
 )
 
-RESET_COLOR = "\x1b[0m"
-RED_COLOR = "\x1b[31;21m"
-YELLOW_COLOR = "\x1b[33;21m"
 
-
-class ConfigFileSystemEventHandler(FileSystemEventHandler):
-    """Event Handler for config file changes."""
-
-    def __init__(self):
-        super().__init__()
-        self.mqqt_client = None
-
-
-def load_config_file(path):
-    """Load configuration from yaml file."""
-    with open(path, "r") as stream:
-        logger.debug("Loading configuration from <%s>", path)
-        return yaml.load(stream)
+log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+logging.basicConfig(format=log_format)
+logger = logging.getLogger(__name__)
 
 
 def gen_ha_config(light, mqtt_base_topic):
@@ -94,11 +97,6 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format)
-logger = logging.getLogger(__name__)
-
-
 def dali_scan(driver, max_range=4):
     """Scan a maximum number of dali devices."""
     lamps = []
@@ -113,10 +111,10 @@ def dali_scan(driver, max_range=4):
     return lamps
 
 
-def on_detect_changes_in_config(event, mqqt_client):
+def on_detect_changes_in_config(mqtt_client):
     """Callback when changes are detected in the configuration file."""
-    logger.info("Detected changes in configuration file %s, reloading", event.src_path)
-    mqqt_client.disconnect()
+    logger.info("Reconnecting to server")
+    mqtt_client.disconnect()
 
 
 def on_message_cmd(mqtt_client, data_object, msg):
@@ -191,16 +189,16 @@ def on_connect(
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
 ):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
-    mqqt_base_topic = data_object["base_topic"]
+    mqtt_base_topic = data_object["base_topic"]
     driver_object = data_object["driver"]
     client.subscribe(
         [
-            (MQTT_COMMAND_TOPIC.format(mqqt_base_topic, "+"), 0),
-            (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqqt_base_topic, "+"), 0),
+            (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
+            (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
         ]
     )
     client.publish(
-        MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic), MQTT_AVAILABLE, retain=True
+        MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
     )
     lamps = dali_scan(driver_object, max_lamps)
     for lamp in lamps:
@@ -211,16 +209,16 @@ def on_connect(
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                gen_ha_config(lamp, mqqt_base_topic),
+                gen_ha_config(lamp, mqtt_base_topic),
                 retain=True,
             )
             client.publish(
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqqt_base_topic, lamp),
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 actual_level.value,
                 retain=True,
             )
             client.publish(
-                MQTT_STATE_TOPIC.format(mqqt_base_topic, lamp),
+                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
@@ -229,25 +227,25 @@ def on_connect(
 
 
 def create_mqtt_client(
-    driver_object, max_lamps, mqtt_server, mqtt_port, mqqt_base_topic, ha_prefix
+    driver_object, max_lamps, mqtt_server, mqtt_port, mqtt_base_topic, ha_prefix
 ):
     """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(
         client_id="dali2mqtt",
-        userdata={"driver": driver_object, "base_topic": mqqt_base_topic},
+        userdata={"driver": driver_object, "base_topic": mqtt_base_topic},
     )
     mqttc.will_set(
-        MQTT_DALI2MQTT_STATUS.format(mqqt_base_topic), MQTT_NOT_AVAILABLE, retain=True
+        MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_NOT_AVAILABLE, retain=True
     )
     mqttc.on_connect = lambda a, b, c, d: on_connect(a, b, c, d, max_lamps, ha_prefix)
 
     # Add message callbacks that will only trigger on a specific subscription match.
     mqttc.message_callback_add(
-        MQTT_COMMAND_TOPIC.format(mqqt_base_topic, "+"), on_message_cmd
+        MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), on_message_cmd
     )
     mqttc.message_callback_add(
-        MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqqt_base_topic, "+"),
+        MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"),
         on_message_brightness_cmd,
     )
     mqttc.on_message = on_message
@@ -255,112 +253,15 @@ def create_mqtt_client(
     return mqttc
 
 
-def main(config):
-    exception_raised = False
-    logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[args.log_level])
-    try:
-        dali_driver = None
-        logger.debug("Using <%s> driver", config["dali_driver"])
-
-        if config["dali_driver"] == HASSEB:
-            from dali.driver.hasseb import SyncHassebDALIUSBDriver
-
-            dali_driver = SyncHassebDALIUSBDriver()
-            firmware_version = float(dali_driver.readFirmwareVersion())
-            if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
-                logger.error("Using dali2mqtt requires newest hasseb firmware")
-                logger.error(
-                    "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
-                )
-                quit(1)
-        elif config["dali_driver"] == TRIDONIC:
-            from dali.driver.tridonic import SyncTridonicDALIUSBDriver
-
-            dali_driver = SyncTridonicDALIUSBDriver()
-        elif config["dali_driver"] == DALI_SERVER:
-            from dali.driver.daliserver import DaliServer
-
-            dali_driver = DaliServer("localhost", 55825)
-
-        watchdog_observer = Observer()
-        watchdog_event_handler = ConfigFileSystemEventHandler()
-        watchdog_event_handler.on_modified = lambda event: on_detect_changes_in_config(
-            event, watchdog_event_handler.mqqt_client
-        )
-        watchdog_observer.schedule(watchdog_event_handler, config["config"])
-        watchdog_observer.start()
-
-        should_backoff = True
-        retries = 0
-        run = True
-        while run:
-            config = load_config_file(config["config"])
-            mqqtc = create_mqtt_client(
-                dali_driver,
-                config["dali_lamps"],
-                config["mqtt_server"],
-                config["mqtt_port"],
-                config["mqtt_base_topic"],
-                config["ha_discover_prefix"],
-            )
-            watchdog_event_handler.mqqt_client = mqqtc
-            mqqtc.loop_forever()
-            if should_backoff:
-                if retries == MAX_RETRIES:
-                    run = False
-                delay = MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
-                time.sleep(delay)
-                retries += 1  # TODO reset on successfull connection
-
-    except FileNotFoundError:
-        exception_raised = True
-        logger.info(
-            "Configuration file %s created, please reload daemon", config["config"]
-        )
-    except KeyError as err:
-        exception_raised = True
-        missing_key = err.args[0]
-        # config[missing_key] = args.__dict__[missing_key] TODO this will be moved to a new class in next PR
-        logger.info("<%s> key missing, configuration file updated", missing_key)
-    finally:
-        if exception_raised:
-            try:
-                with io.open(config["config"], "w", encoding="utf8") as outfile:
-                    yaml.dump(
-                        config, outfile, default_flow_style=False, allow_unicode=True
-                    )
-            except Exception as err:
-                logger.error("Could not save configuration: %s", err)
+def delay():
+    return MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", help="configuration file", default="config.ini")
-    parser.add_argument("--mqtt-server", help="MQTT server", default="localhost")
-    parser.add_argument("--mqtt-port", help="MQTT port", type=int, default=1883)
-    parser.add_argument(
-        "--mqtt-base-topic", help="MQTT base topic", default=DEFAULT_MQTT_BASE_TOPIC
-    )
-    parser.add_argument(
-        "--dali-driver", help="DALI device driver", choices=DALI_DRIVERS, default=HASSEB
-    )
-    parser.add_argument(
-        "--dali-lamps", help="Number of lamps to scan", type=int, default=4
-    )
-    parser.add_argument(
-        "--ha-discover-prefix", help="HA discover mqtt prefix", default="homeassistant"
-    )
-    parser.add_argument(
-        "--log-level",
-        help="Log level",
-        choices=ALL_SUPPORTED_LOG_LEVELS,
-        default="info",
-    )
-    parser.add_argument("--log-color", help="Coloring output", action="store_true")
+def main(args):
+    mqttc = None
+    config = Config(args, lambda: on_detect_changes_in_config(mqttc))
 
-    args = parser.parse_args()
-
-    if args.log_color:
+    if config.log_color:
         logging.addLevelName(
             logging.WARNING,
             "{}{}".format(YELLOW_COLOR, logging.getLevelName(logging.WARNING)),
@@ -369,14 +270,82 @@ if __name__ == "__main__":
             logging.ERROR, "{}{}".format(RED_COLOR, logging.getLevelName(logging.ERROR))
         )
 
-    config = {
-        "config": args.config,
-        "mqtt_server": args.mqtt_server,
-        "mqtt_port": args.mqtt_port,
-        "mqtt_base_topic": args.mqtt_base_topic,
-        "dali_driver": args.dali_driver,
-        "dali_lamps": args.dali_lamps,
-        "ha_discover_prefix": args.ha_discover_prefix,
-    }
+    logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[config.log_level])
 
-    main(config)
+    dali_driver = None
+    logger.debug("Using <%s> driver", config.dali_driver)
+
+    if config.dali_driver == HASSEB:
+        from dali.driver.hasseb import SyncHassebDALIUSBDriver
+
+        dali_driver = SyncHassebDALIUSBDriver()
+
+        firmware_version = float(dali_driver.readFirmwareVersion())
+        if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
+            logger.error("Using dali2mqtt requires newest hasseb firmware")
+            logger.error(
+                "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
+            )
+            quit(1)
+    elif config.dali_driver == TRIDONIC:
+        from dali.driver.tridonic import SyncTridonicDALIUSBDriver
+
+        dali_driver = SyncTridonicDALIUSBDriver()
+    elif config.dali_driver == DALI_SERVER:
+        from dali.driver.daliserver import DaliServer
+
+        dali_driver = DaliServer("localhost", 55825)
+
+    should_backoff = True
+    retries = 0
+    run = True
+    while run:
+        mqttc = create_mqtt_client(
+            dali_driver,
+            config.dali_lamps,
+            *config.mqtt_conf,
+            config.ha_discovery_prefix,
+        )
+        mqttc.loop_forever()
+        if should_backoff:
+            if retries == MAX_RETRIES:
+                run = False
+            time.sleep(delay())
+            retries += 1  # TODO reset on successfull connection
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+    parser.add_argument(
+        f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
+    )
+    parser.add_argument(
+        f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server"
+    )
+    parser.add_argument(
+        f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
+    )
+    parser.add_argument(
+        f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
+    )
+    parser.add_argument(
+        f"--{CONF_DALI_DRIVER.replace('_','-')}", help="DALI device driver", choices=DALI_DRIVERS
+    )
+    parser.add_argument(
+        f"--{CONF_DALI_LAMPS.replace('_','-')}", help="Number of lamps to scan", type=int
+    )
+    parser.add_argument(
+        f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
+        help="HA discovery mqtt prefix",
+    )
+    parser.add_argument(
+        f"--{CONF_LOG_LEVEL.replace('_','-')}",
+        help="Log level",
+        choices=ALL_SUPPORTED_LOG_LEVELS,
+    )
+    parser.add_argument(f"--{CONF_LOG_COLOR.replace('_','-')}", help="Coloring output", action="store_true")
+
+    args = parser.parse_args()
+
+    main(args)
