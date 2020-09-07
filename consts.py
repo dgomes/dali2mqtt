@@ -30,15 +30,13 @@ MQTT_STATE_TOPIC = "{}/{}/light/status"
 MQTT_COMMAND_TOPIC = "{}/{}/light/switch"
 MQTT_BRIGHTNESS_STATE_TOPIC = "{}/{}/light/brightness/status"
 MQTT_BRIGHTNESS_COMMAND_TOPIC = "{}/{}/light/brightness/set"
+MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC = "{}/{}/max_level"
+MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC = "{}/{}/min_level"
+MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC = "{}/{}/physical_minimum"
 MQTT_PAYLOAD_ON = b"ON"
 MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
-
-MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC = "{}/{}/light/brightness/max_level"
-MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC = "{}/{}/light/brightness/min_level"
-MQTT_BRIGHTNESS_MIN_PHYSICAL_LEVEL_TOPIC = "{}/{}/light/brightness/min_physical_level"
-
 
 HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
 
