@@ -206,9 +206,9 @@ def on_connect(
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
-            brightness_level = driver_object.send(gear.QueryActualLevel(short_address))
+            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
 
-            logger.debug("QueryActualLevel = %s", brightness_level.value)
+            logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
                 gen_ha_config(lamp, mqtt_base_topic),
@@ -216,19 +216,19 @@ def on_connect(
             )
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                brightness_level.value,
+                actual_level.value,
                 retain=True,
             )
 
             client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if brightness_level.value > 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
             logger.info(
                 "   - short address: %d, brightness level: %d",
                 short_address.address,
-                brightness_level.value,
+                actual_level.value,
             )
 
         except DALIError as err:
