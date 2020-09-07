@@ -52,6 +52,9 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC,
     ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
@@ -208,7 +211,11 @@ def on_connect(
         try:
             short_address = address.Short(lamp)
             actual_level = driver_object.send(gear.QueryActualLevel(short_address))
-
+            physical_minimum = driver_object.send(
+                gear.QueryPhysicalMinimum(short_address)
+            )
+            min_level = driver_object.send(gear.QueryMinLevel(short_address))
+            max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
@@ -222,14 +229,34 @@ def on_connect(
             )
 
             client.publish(
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                max_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                min_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
+                    mqtt_base_topic, lamp
+                ),
+                physical_minimum.value,
+                retain=True,
+            )
+            client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
             logger.info(
-                "   - short address: %d, brightness level: %d",
+                "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
                 short_address.address,
                 actual_level.value,
+                min_level.value,
+                max_level.value,
+                physical_minimum.value,
             )
 
         except DALIError as err:
@@ -323,15 +350,12 @@ def main(args):
             retries += 1  # TODO reset on successfull connection
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument(
         f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
     )
-    parser.add_argument(
-        f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server"
-    )
+    parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
     parser.add_argument(
         f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
     )
@@ -339,7 +363,9 @@ if __name__ == "__main__":
         f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
     )
     parser.add_argument(
-        f"--{CONF_DALI_DRIVER.replace('_','-')}", help="DALI device driver", choices=DALI_DRIVERS
+        f"--{CONF_DALI_DRIVER.replace('_','-')}",
+        help="DALI device driver",
+        choices=DALI_DRIVERS,
     )
     parser.add_argument(
         f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
@@ -350,7 +376,11 @@ if __name__ == "__main__":
         help="Log level",
         choices=ALL_SUPPORTED_LOG_LEVELS,
     )
-    parser.add_argument(f"--{CONF_LOG_COLOR.replace('_','-')}", help="Coloring output", action="store_true")
+    parser.add_argument(
+        f"--{CONF_LOG_COLOR.replace('_','-')}",
+        help="Coloring output",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
