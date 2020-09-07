@@ -284,7 +284,7 @@ def main(args):
         if firmware_version < MIN_HASSEB_FIRMWARE_VERSION:
             logger.error("Using dali2mqtt requires newest hasseb firmware")
             logger.error(
-                "Please, look at https://github.com/hasseb/python-dali/tree/3dbf4af3b3770431e7351057ea328b4dbcc3a355/dali/driver/hasseb_firmware"
+                "Please, look at https://github.com/hasseb/python-dali/tree/master/dali/driver/hasseb_firmware"
             )
             quit(1)
     elif config.dali_driver == TRIDONIC:
