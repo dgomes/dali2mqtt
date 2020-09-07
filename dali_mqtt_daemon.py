@@ -87,10 +87,10 @@ def gen_ha_config(light, mqtt_base_topic):
     return json.dumps(json_config)
 
 
-def dali_scan(driver, max_range=4):
+def dali_scan(driver):
     """Scan a maximum number of dali devices."""
     lamps = []
-    for lamp in range(0, max_range):
+    for lamp in range(0, 63):
         try:
             logging.debug("Search for Lamp %s", lamp)
             present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
@@ -175,7 +175,6 @@ def on_connect(
     data_object,
     flags,
     result,
-    max_lamps=4,
     ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
 ):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
@@ -190,19 +189,17 @@ def on_connect(
     client.publish(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
     )
-    lamps = dali_scan(driver_object, max_lamps)
+    lamps = dali_scan(driver_object)
     logger.info(
-        "Found %d lamps from excepted %d, scanned in range 0-%d",
+        "Found %d lamps",
         len(lamps),
-        max_lamps,
-        max_lamps,
     )
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
-            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
+            brightness_level = driver_object.send(gear.QueryActualLevel(short_address))
 
-            logger.debug("QueryActualLevel = %s", actual_level.value)
+            logger.debug("QueryActualLevel = %s", brightness_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
                 gen_ha_config(lamp, mqtt_base_topic),
@@ -210,19 +207,19 @@ def on_connect(
             )
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                actual_level.value,
+                brightness_level.value,
                 retain=True,
             )
 
             client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if brightness_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
             logger.info(
                 "   - short address: %d, brightness level: %d",
                 short_address.address,
-                actual_level.value,
+                brightness_level.value,
             )
 
         except DALIError as err:
@@ -230,7 +227,7 @@ def on_connect(
 
 
 def create_mqtt_client(
-    driver_object, max_lamps, mqtt_server, mqtt_port, mqtt_base_topic, ha_prefix
+    driver_object, mqtt_server, mqtt_port, mqtt_base_topic, ha_prefix
 ):
     """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
@@ -241,7 +238,7 @@ def create_mqtt_client(
     mqttc.will_set(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_NOT_AVAILABLE, retain=True
     )
-    mqttc.on_connect = lambda a, b, c, d: on_connect(a, b, c, d, max_lamps, ha_prefix)
+    mqttc.on_connect = lambda a, b, c, d: on_connect(a, b, c, d, ha_prefix)
 
     # Add message callbacks that will only trigger on a specific subscription match.
     mqttc.message_callback_add(
@@ -297,7 +294,6 @@ def main(args):
     while run:
         mqttc = create_mqtt_client(
             dali_driver,
-            config.dali_lamps,
             *config.mqtt_conf,
             config.ha_discovery_prefix,
         )
@@ -325,9 +321,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dali-driver", help="DALI device driver", choices=DALI_DRIVERS, default=HASSEB
-    )
-    parser.add_argument(
-        "--dali-lamps", help="Number of lamps to scan", type=int, default=4
     )
     parser.add_argument(
         "--ha-discovery-prefix",

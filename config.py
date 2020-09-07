@@ -20,7 +20,6 @@ from consts import (
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     DEFAULT_DALI_DRIVER,
-    DEFAULT_DALI_LAMPS,
     DALI_DRIVERS,
     ALL_SUPPORTED_LOG_LEVELS,
 )
@@ -29,7 +28,6 @@ CONF_MQTT_SERVER = "mqtt_server"
 CONF_MQTT_PORT = "mqtt_port"
 CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
 CONF_DALI_DRIVER = "dali_driver"
-CONF_DALI_LAMPS = "dali_lamps"
 CONF_HA_DISCOVERY_PREFIX = "ha_discovery_prefix"
 CONF_LOG_LEVEL = "log_level"
 CONF_LOG_COLOR = "log_color"
@@ -43,9 +41,6 @@ CONF_SCHEMA = vol.Schema(
         vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
         vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(
             DALI_DRIVERS
-        ),
-        vol.Optional(CONF_DALI_LAMPS, default=DEFAULT_DALI_LAMPS): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=64)
         ),
         vol.Optional(
             CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX
@@ -77,8 +72,6 @@ class Config:
             self._config[CONF_MQTT_BASE_TOPIC] = args.mqtt_base_topic
         if self._config.get(CONF_DALI_DRIVER) != args.dali_driver:
             self._config[CONF_DALI_DRIVER] = args.dali_driver
-        if self._config.get(CONF_DALI_LAMPS) != args.dali_lamps:
-            self._config[CONF_DALI_LAMPS] = args.dali_lamps
         if self._config.get(CONF_HA_DISCOVERY_PREFIX) != args.ha_discovery_prefix:
             self._config[CONF_HA_DISCOVERY_PREFIX] = args.ha_discovery_prefix
         if self._config.get(CONF_LOG_LEVEL) != args.log_level:
@@ -147,10 +140,6 @@ class Config:
     @property
     def dali_driver(self):
         return self._config[CONF_DALI_DRIVER]
-
-    @property
-    def dali_lamps(self):
-        return self._config[CONF_DALI_LAMPS]
 
     @property
     def ha_discovery_prefix(self):
