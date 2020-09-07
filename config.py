@@ -23,16 +23,18 @@ from consts import (
     DEFAULT_DALI_LAMPS,
     DALI_DRIVERS,
     ALL_SUPPORTED_LOG_LEVELS,
+    CONF_CONFIG,
+    CONF_DALI_DRIVER,
+    CONF_DALI_LAMPS,
+    CONF_LOG_COLOR,
+    CONF_LOG_LEVEL,
+    CONF_HA_DISCOVERY_PREFIX,
+    CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PORT,
+    CONF_MQTT_SERVER
 )
 
-CONF_MQTT_SERVER = "mqtt_server"
-CONF_MQTT_PORT = "mqtt_port"
-CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
-CONF_DALI_DRIVER = "dali_driver"
-CONF_DALI_LAMPS = "dali_lamps"
-CONF_HA_DISCOVERY_PREFIX = "ha_discovery_prefix"
-CONF_LOG_LEVEL = "log_level"
-CONF_LOG_COLOR = "log_color"
+
 
 CONF_SCHEMA = vol.Schema(
     {
@@ -54,7 +56,7 @@ CONF_SCHEMA = vol.Schema(
             ALL_SUPPORTED_LOG_LEVELS
         ),
         vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
-    }
+    }, extra=True,
 )
 
 
@@ -66,25 +68,17 @@ class Config:
         self._config = {}
 
         # Load from file
-        self.load_config_file()
+        try:
+            self.load_config_file()
+        except FileNotFoundError:
+            logger.info("No configuration file, creating a new one")
+            self._config = CONF_SCHEMA({})
 
         # Overwrite with command line arguments
-        if self._config.get(CONF_MQTT_SERVER) != args.mqtt_server:
-            self._config[CONF_MQTT_SERVER] = args.mqtt_server
-        if self._config.get(CONF_MQTT_PORT) != args.mqtt_port:
-            self._config[CONF_MQTT_PORT] = args.mqtt_port
-        if self._config.get(CONF_MQTT_BASE_TOPIC) != args.mqtt_base_topic:
-            self._config[CONF_MQTT_BASE_TOPIC] = args.mqtt_base_topic
-        if self._config.get(CONF_DALI_DRIVER) != args.dali_driver:
-            self._config[CONF_DALI_DRIVER] = args.dali_driver
-        if self._config.get(CONF_DALI_LAMPS) != args.dali_lamps:
-            self._config[CONF_DALI_LAMPS] = args.dali_lamps
-        if self._config.get(CONF_HA_DISCOVERY_PREFIX) != args.ha_discovery_prefix:
-            self._config[CONF_HA_DISCOVERY_PREFIX] = args.ha_discovery_prefix
-        if self._config.get(CONF_LOG_LEVEL) != args.log_level:
-            self._config[CONF_LOG_LEVEL] = args.log_level
-        if self._config.get(CONF_LOG_COLOR) != args.log_color:
-            self._config[CONF_LOG_COLOR] = args.log_color
+        args_keys = vars(args)
+        for key in args_keys:
+            if self._config.get(key) != args_keys[key]:
+                self._config[key] = args_keys[key]
 
         self.save_config_file()
 
@@ -99,7 +93,7 @@ class Config:
         with open(self._path, "r") as infile:
             logger.debug("Loading configuration from <%s>", self._path)
             try:
-                configuration = yaml.load(infile)
+                configuration = yaml.safe_load(infile)
                 if not configuration:
                     logger.warning(
                         "Could not load a configuration from %s, creating a new one",
@@ -119,11 +113,14 @@ class Config:
         """Save configuration back to yaml file."""
         try:
             with open(self._path, "w", encoding="utf8") as outfile:
+                cfg = self._config.pop(CONF_CONFIG) #temporary displace config file
                 yaml.dump(
                     self._config, outfile, default_flow_style=False, allow_unicode=True
                 )
         except Exception as err:
             logger.error("Could not save configuration: %s", err)
+        finally:
+            self._config[CONF_CONFIG] = cfg #restore
 
     def __del__(self):
         """Release watchdog."""
