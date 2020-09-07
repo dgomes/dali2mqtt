@@ -4,7 +4,17 @@ import logging
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"
-DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER]
+DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER, "dummy"]
+
+CONF_CONFIG = "config"
+CONF_MQTT_SERVER = "mqtt_server"
+CONF_MQTT_PORT = "mqtt_port"
+CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
+CONF_DALI_DRIVER = "dali_driver"
+CONF_DALI_LAMPS = "dali_lamps"
+CONF_HA_DISCOVERY_PREFIX = "ha_discovery_prefix"
+CONF_LOG_LEVEL = "log_level"
+CONF_LOG_COLOR = "log_color"
 
 DEFAULT_CONFIG_FILE = "config.yaml"
 DEFAULT_MQTT_SERVER = "localhost"

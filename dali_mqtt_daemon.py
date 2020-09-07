@@ -31,6 +31,15 @@ from consts import (
     DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
+    CONF_CONFIG,
+    CONF_DALI_DRIVER,
+    CONF_DALI_LAMPS,
+    CONF_LOG_COLOR,
+    CONF_LOG_LEVEL,
+    CONF_HA_DISCOVERY_PREFIX,
+    CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PORT,
+    CONF_MQTT_SERVER,
     HA_DISCOVERY_PREFIX,
     HASSEB,
     MQTT_AVAILABLE,
@@ -306,34 +315,32 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument(
-        "--config", help="configuration file", default=DEFAULT_CONFIG_FILE
+        f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
     )
     parser.add_argument(
-        "--mqtt-server", help="MQTT server", default=DEFAULT_MQTT_SERVER
+        f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server"
     )
     parser.add_argument(
-        "--mqtt-port", help="MQTT port", type=int, default=DEFAULT_MQTT_PORT
+        f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
     )
     parser.add_argument(
-        "--mqtt-base-topic", help="MQTT base topic", default=DEFAULT_MQTT_BASE_TOPIC
+        f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
     )
     parser.add_argument(
-        "--dali-driver", help="DALI device driver", choices=DALI_DRIVERS, default=HASSEB
+        f"--{CONF_DALI_DRIVER.replace('_','-')}", help="DALI device driver", choices=DALI_DRIVERS
     )
     parser.add_argument(
-        "--ha-discovery-prefix",
+        f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
         help="HA discovery mqtt prefix",
-        default="homeassistant",
     )
     parser.add_argument(
-        "--log-level",
+        f"--{CONF_LOG_LEVEL.replace('_','-')}",
         help="Log level",
         choices=ALL_SUPPORTED_LOG_LEVELS,
-        default=DEFAULT_LOG_LEVEL,
     )
-    parser.add_argument("--log-color", help="Coloring output", action="store_true")
+    parser.add_argument(f"--{CONF_LOG_COLOR.replace('_','-')}", help="Coloring output", action="store_true")
 
     args = parser.parse_args()
 
