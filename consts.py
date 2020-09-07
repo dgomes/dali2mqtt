@@ -6,8 +6,15 @@ TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"
 DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER]
 
+DEFAULT_CONFIG_FILE = "config.yaml"
+DEFAULT_MQTT_SERVER = "localhost"
+DEFAULT_MQTT_PORT = "1883"
 DEFAULT_MQTT_BASE_TOPIC = "dali2mqtt"
 DEFAULT_HA_DISCOVERY_PREFIX = "homeassistant"
+DEFAULT_DALI_DRIVER = "hasseb"
+DEFAULT_DALI_LAMPS = 4
+DEFAULT_LOG_LEVEL = "info"
+DEFAULT_LOG_COLOR = False
 
 MQTT_DALI2MQTT_STATUS = "{}/status"
 MQTT_STATE_TOPIC = "{}/{}/light/status"
@@ -31,3 +38,8 @@ ALL_SUPPORTED_LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG,
 }
+
+
+RESET_COLOR = "\x1b[0m"
+RED_COLOR = "\x1b[31;21m"
+YELLOW_COLOR = "\x1b[33;21m"
