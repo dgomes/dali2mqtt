@@ -102,7 +102,11 @@ def initialize_lamps(data_object, client):
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             lamp_object = Lamp(
-                lamp, physical_minimum.value, min_level.value, max_level.value
+                lamp,
+                physical_minimum.value,
+                min_level.value,
+                actual_level.value,
+                max_level.value,
             )
             data_object["all_lamps"][lamp] = lamp_object
 
@@ -201,14 +205,12 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         lamp_object = data_object["all_lamps"][light]
         try:
             level = int(msg.payload.decode("utf-8"))
-            if (
-                not lamp_object.min_level <= level <= lamp_object.max_level
-                and level != 0
-            ):
-                raise ValueError
-            logger.debug("Set light <%s> brightness to %s", light, level)
-            data_object["driver"].send(gear.DAPC(address.Short(light), level))
-            if level == 0:
+            lamp_object.level = level
+            logger.debug("Set light <%s> brightness to %s", light, lamp_object.level)
+            data_object["driver"].send(
+                gear.DAPC(address.Short(light), lamp_object.level)
+            )
+            if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
                 mqtt_client.publish(
                     MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
@@ -223,13 +225,13 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
                 )
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-                level,
+                lamp_object.level,
                 retain=True,
             )
         except ValueError as err:
             logger.error(
                 "Can't convert <%s> to integer %d..%d: %s",
-                level,
+                lamp_object.level,
                 lamp_object.min_level,
                 lamp_object.max_level,
                 err,

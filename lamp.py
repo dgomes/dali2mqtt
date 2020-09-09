@@ -16,26 +16,29 @@ from consts import (
 
 
 class Lamp:
-    def __init__(self, address, min_physical_level, min_level, max_level):
-        self.address = address
+    def __init__(self, short_address, min_physical_level, min_level, level, max_level):
+        self.short_address = short_address
         self.min_physical_level = min_physical_level
         self.min_level = min_level
         self.max_level = max_level
+        self.level = level
         pass
 
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
         json_config = {
-            "name": "DALI Light {}".format(self.address),
-            "unique_id": "DALI2MQTT_LIGHT_{}".format(self.address),
-            "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.address),
-            "command_topic": MQTT_COMMAND_TOPIC.format(mqtt_base_topic, self.address),
+            "name": "DALI Light {}".format(self.short_address),
+            "unique_id": "DALI2MQTT_LIGHT_{}".format(self.short_address),
+            "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.short_address),
+            "command_topic": MQTT_COMMAND_TOPIC.format(
+                mqtt_base_topic, self.short_address
+            ),
             "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
             "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(
-                mqtt_base_topic, self.address
+                mqtt_base_topic, self.short_address
             ),
             "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
-                mqtt_base_topic, self.address
+                mqtt_base_topic, self.short_address
             ),
             "brightness_scale": self.max_level,
             "on_command_type": "brightness",
@@ -51,3 +54,13 @@ class Lamp:
             },
         }
         return json.dumps(json_config)
+
+    @property
+    def level(self):
+        return self.__level
+
+    @level.setter
+    def level(self, value):
+        if not self.min_level <= value <= self.max_level and value != 0:
+            raise ValueError
+        self.__level = value
