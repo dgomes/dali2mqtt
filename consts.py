@@ -1,6 +1,10 @@
 import logging
 
 """Constants common the various modules."""
+__author__ = "Diogo Gomes"
+__version__ = "0.0.1"
+__email__ = "diogogomes@gmail.com"
+
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"

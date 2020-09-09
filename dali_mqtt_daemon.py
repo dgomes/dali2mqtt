@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """Bridge between a DALI controller and an MQTT bus."""
-__author__ = "Diogo Gomes"
-__version__ = "0.0.1"
-__email__ = "diogogomes@gmail.com"
+
 
 import argparse
 import io
-import json
 import logging
 import re
 import yaml
@@ -20,6 +17,7 @@ from dali.command import YesNoResponse
 from dali.exceptions import DALIError
 
 from config import Config
+from lamp import Lamp
 
 from consts import (
     DALI_DRIVERS,
@@ -71,36 +69,6 @@ logging.basicConfig(format=log_format)
 logger = logging.getLogger(__name__)
 
 
-def gen_ha_config(light, mqtt_base_topic):
-    """Generate a automatic configuration for Home Assistant."""
-    json_config = {
-        "name": "DALI Light {}".format(light),
-        "unique_id": "DALI2MQTT_LIGHT_{}".format(light),
-        "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, light),
-        "command_topic": MQTT_COMMAND_TOPIC.format(mqtt_base_topic, light),
-        "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
-        "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(
-            mqtt_base_topic, light
-        ),
-        "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
-            mqtt_base_topic, light
-        ),
-        "brightness_scale": 254,
-        "on_command_type": "brightness",
-        "availability_topic": MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic),
-        "payload_available": MQTT_AVAILABLE,
-        "payload_not_available": MQTT_NOT_AVAILABLE,
-        "device": {
-            "identifiers": "dali2mqtt",
-            "name": "DALI Lights",
-            "sw_version": f"dali2mqtt {__version__}",
-            "model": "dali2mqtt",
-            "manufacturer": f"{__author__} <{__email__}>",
-        },
-    }
-    return json.dumps(json_config)
-
-
 def dali_scan(driver):
     """Scan a maximum number of dali devices."""
     lamps = []
@@ -133,10 +101,15 @@ def initialize_lamps(data_object, client):
             )
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
+            lamp_object = Lamp(
+                lamp, physical_minimum.value, min_level.value, max_level.value
+            )
+            data_object["all_lamps"][lamp] = lamp_object
+
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                gen_ha_config(lamp, mqtt_base_topic),
+                lamp_object.gen_ha_config(mqtt_base_topic),
                 retain=True,
             )
             client.publish(
@@ -223,31 +196,46 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         ).group(1)
     )
     try:
-        level = int(msg.payload.decode("utf-8"))
-        if not 0 <= level <= 255:
-            raise ValueError
-        logger.debug("Set light <%s> brightness to %s", light, level)
-        data_object["driver"].send(gear.DAPC(address.Short(light), level))
-        if level == 0:
-            # 0 in DALI is turn off with fade out
+        if light not in data_object["all_lamps"]:
+            raise KeyError
+        lamp_object = data_object["all_lamps"][light]
+        try:
+            level = int(msg.payload.decode("utf-8"))
+            if (
+                not lamp_object.min_level <= level <= lamp_object.max_level
+                and level != 0
+            ):
+                raise ValueError
+            logger.debug("Set light <%s> brightness to %s", light, level)
+            data_object["driver"].send(gear.DAPC(address.Short(light), level))
+            if level == 0:
+                # 0 in DALI is turn off with fade out
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_OFF,
+                    retain=True,
+                )
+            else:
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_ON,
+                    retain=True,
+                )
             mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_OFF,
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
+                level,
                 retain=True,
             )
-        else:
-            mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON,
-                retain=True,
+        except ValueError as err:
+            logger.error(
+                "Can't convert <%s> to integer %d..%d: %s",
+                level,
+                lamp_object.min_level,
+                lamp_object.max_level,
+                err,
             )
-        mqtt_client.publish(
-            MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-            level,
-            retain=True,
-        )
-    except ValueError as err:
-        logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
+    except KeyError:
+        logger.error("Lamp on address %d doesn't exists", light)
 
 
 def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
@@ -289,6 +277,7 @@ def create_mqtt_client(
             "driver": driver_object,
             "base_topic": mqtt_base_topic,
             "ha_prefix": ha_prefix,
+            "all_lamps": {},
         },
     )
     mqttc.will_set(
