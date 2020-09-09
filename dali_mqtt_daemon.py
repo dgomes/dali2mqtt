@@ -46,6 +46,7 @@ from consts import (
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
+    MQTT_SCAN_LAMPS_COMMAND_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_DALI2MQTT_STATUS,
     MQTT_NOT_AVAILABLE,
@@ -114,94 +115,10 @@ def dali_scan(driver):
     return lamps
 
 
-def on_detect_changes_in_config(mqtt_client):
-    """Callback when changes are detected in the configuration file."""
-    logger.info("Reconnecting to server")
-    mqtt_client.disconnect()
-
-
-def on_message_cmd(mqtt_client, data_object, msg):
-    """Callback on MQTT command message."""
-    logger.debug("Command on %s: %s", msg.topic, msg.payload)
-    light = int(
-        re.search(
-            MQTT_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"), msg.topic
-        ).group(1)
-    )
-    if msg.payload == MQTT_PAYLOAD_OFF:
-        try:
-            logger.debug("Set light <%s> to %s", light, msg.payload)
-            data_object["driver"].send(gear.Off(address.Short(light)))
-            mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_OFF,
-                retain=True,
-            )
-        except DALIError as err:
-            logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
-
-
-def on_message_brightness_cmd(mqtt_client, data_object, msg):
-    """Callback on MQTT brightness command message."""
-    logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
-    light = int(
-        re.search(
-            MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
-            msg.topic,
-        ).group(1)
-    )
-    try:
-        level = int(msg.payload.decode("utf-8"))
-        if not 0 <= level <= 255:
-            raise ValueError
-        logger.debug("Set light <%s> brightness to %s", light, level)
-        data_object["driver"].send(gear.DAPC(address.Short(light), level))
-        if level == 0:
-            # 0 in DALI is turn off with fade out
-            mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_OFF,
-                retain=True,
-            )
-        else:
-            mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON,
-                retain=True,
-            )
-        mqtt_client.publish(
-            MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-            level,
-            retain=True,
-        )
-    except ValueError as err:
-        logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
-
-
-def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
-    """Default callback on MQTT message."""
-    logger.error("Don't publish to %s", msg.topic)
-
-
-def on_connect(
-    client,
-    data_object,
-    flags,
-    result,
-    ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
-):  # pylint: disable=W0613,R0913
-    """Callback on connection to MQTT server."""
-    mqtt_base_topic = data_object["base_topic"]
+def initialize_lamps(data_object, client):
     driver_object = data_object["driver"]
-    client.subscribe(
-        [
-            (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
-            (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
-        ]
-    )
-    client.publish(
-        MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
-    )
+    mqtt_base_topic = data_object["base_topic"]
+    ha_prefix = data_object["ha_prefix"]
     lamps = dali_scan(driver_object)
     logger.info(
         "Found %d lamps",
@@ -263,6 +180,104 @@ def on_connect(
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
 
+def on_detect_changes_in_config(mqtt_client):
+    """Callback when changes are detected in the configuration file."""
+    logger.info("Reconnecting to server")
+    mqtt_client.disconnect()
+
+
+def on_message_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT command message."""
+    logger.debug("Command on %s: %s", msg.topic, msg.payload)
+    light = int(
+        re.search(
+            MQTT_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"), msg.topic
+        ).group(1)
+    )
+    if msg.payload == MQTT_PAYLOAD_OFF:
+        try:
+            logger.debug("Set light <%s> to %s", light, msg.payload)
+            data_object["driver"].send(gear.Off(address.Short(light)))
+            mqtt_client.publish(
+                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                MQTT_PAYLOAD_OFF,
+                retain=True,
+            )
+        except DALIError as err:
+            logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
+
+
+def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT scan lamps command message"""
+    logger.debug("Reinitialize Command on %s", msg.topic)
+    initialize_lamps(data_object, mqtt_client)
+
+
+def on_message_brightness_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT brightness command message."""
+    logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
+    light = int(
+        re.search(
+            MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
+            msg.topic,
+        ).group(1)
+    )
+    try:
+        level = int(msg.payload.decode("utf-8"))
+        if not 0 <= level <= 255:
+            raise ValueError
+        logger.debug("Set light <%s> brightness to %s", light, level)
+        data_object["driver"].send(gear.DAPC(address.Short(light), level))
+        if level == 0:
+            # 0 in DALI is turn off with fade out
+            mqtt_client.publish(
+                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                MQTT_PAYLOAD_OFF,
+                retain=True,
+            )
+        else:
+            mqtt_client.publish(
+                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                MQTT_PAYLOAD_ON,
+                retain=True,
+            )
+        mqtt_client.publish(
+            MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
+            level,
+            retain=True,
+        )
+    except ValueError as err:
+        logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
+
+
+def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
+    """Default callback on MQTT message."""
+    logger.error("Don't publish to %s", msg.topic)
+
+
+def on_connect(
+    client,
+    data_object,
+    flags,
+    result,
+    ha_prefix=DEFAULT_HA_DISCOVERY_PREFIX,
+):  # pylint: disable=W0613,R0913
+    """Callback on connection to MQTT server."""
+    mqtt_base_topic = data_object["base_topic"]
+    driver_object = data_object["driver"]
+    client.subscribe(
+        [
+            (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
+            (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
+            (MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic), 0),
+        ]
+    )
+    client.publish(
+        MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
+    )
+    initialize_lamps(data_object, client)
+
+
 def create_mqtt_client(
     driver_object, mqtt_server, mqtt_port, mqtt_base_topic, ha_prefix
 ):
@@ -270,7 +285,11 @@ def create_mqtt_client(
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(
         client_id="dali2mqtt",
-        userdata={"driver": driver_object, "base_topic": mqtt_base_topic},
+        userdata={
+            "driver": driver_object,
+            "base_topic": mqtt_base_topic,
+            "ha_prefix": ha_prefix,
+        },
     )
     mqttc.will_set(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_NOT_AVAILABLE, retain=True
@@ -284,6 +303,10 @@ def create_mqtt_client(
     mqttc.message_callback_add(
         MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"),
         on_message_brightness_cmd,
+    )
+    mqttc.message_callback_add(
+        MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
+        on_message_reinitialize_lamps_cmd,
     )
     mqttc.on_message = on_message
     mqttc.connect(mqtt_server, mqtt_port, 60)
