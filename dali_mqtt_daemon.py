@@ -53,6 +53,9 @@ from consts import (
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
     MQTT_STATE_TOPIC,
+    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC,
     ALL_SUPPORTED_LOG_LEVELS,
     TRIDONIC,
     MIN_BACKOFF_TIME,
@@ -112,7 +115,10 @@ def dali_scan(driver):
     return lamps
 
 
-def scan_lamps(driver_object):
+def initialize_lamps(data_object, client):
+    driver_object = data_object["driver"]
+    mqtt_base_topic = data_object["base_topic"]
+    ha_prefix = data_object["ha_prefix"]
     lamps = dali_scan(driver_object)
     logger.info(
         "Found %d lamps",
@@ -122,7 +128,11 @@ def scan_lamps(driver_object):
         try:
             short_address = address.Short(lamp)
             actual_level = driver_object.send(gear.QueryActualLevel(short_address))
-
+            physical_minimum = driver_object.send(
+                gear.QueryPhysicalMinimum(short_address)
+            )
+            min_level = driver_object.send(gear.QueryMinLevel(short_address))
+            max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
@@ -136,20 +146,38 @@ def scan_lamps(driver_object):
             )
 
             client.publish(
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                max_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                min_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
+                    mqtt_base_topic, lamp
+                ),
+                physical_minimum.value,
+                retain=True,
+            )
+            client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
             logger.info(
-                "   - short address: %d, brightness level: %d",
+                "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
                 short_address.address,
                 actual_level.value,
+                min_level.value,
+                max_level.value,
+                physical_minimum.value,
             )
 
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
-        except Error as e:
-            print(e)
 
 
 def on_detect_changes_in_config(mqtt_client):
@@ -179,10 +207,10 @@ def on_message_cmd(mqtt_client, data_object, msg):
             logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
 
 
-def on_message_scan_lamps_cmd(mqtt_client, data_object, msg):
+def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT scan lamps command message"""
-    print("o")
-    scan_lamps(data_object["driver"])
+    logger.debug("Reinitialize Command on %s", msg.topic)
+    initialize_lamps(data_object, mqtt_client)
 
 
 def on_message_brightness_cmd(mqtt_client, data_object, msg):
@@ -241,12 +269,13 @@ def on_connect(
         [
             (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
             (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
+            (MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic), 0),
         ]
     )
     client.publish(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
     )
-    scan_lamps(driver_object)
+    initialize_lamps(data_object, client)
 
 
 def create_mqtt_client(
@@ -256,7 +285,11 @@ def create_mqtt_client(
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
     mqttc = mqtt.Client(
         client_id="dali2mqtt",
-        userdata={"driver": driver_object, "base_topic": mqtt_base_topic},
+        userdata={
+            "driver": driver_object,
+            "base_topic": mqtt_base_topic,
+            "ha_prefix": ha_prefix,
+        },
     )
     mqttc.will_set(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_NOT_AVAILABLE, retain=True
@@ -273,7 +306,7 @@ def create_mqtt_client(
     )
     mqttc.message_callback_add(
         MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
-        on_message_scan_lamps_cmd,
+        on_message_reinitialize_lamps_cmd,
     )
     mqttc.on_message = on_message
     mqttc.connect(mqtt_server, mqtt_port, 60)
