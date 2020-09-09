@@ -46,6 +46,7 @@ from consts import (
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
+    MQTT_SCAN_LAMPS_COMMAND_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_DALI2MQTT_STATUS,
     MQTT_NOT_AVAILABLE,
@@ -111,6 +112,46 @@ def dali_scan(driver):
     return lamps
 
 
+def scan_lamps(driver_object):
+    lamps = dali_scan(driver_object)
+    logger.info(
+        "Found %d lamps",
+        len(lamps),
+    )
+    for lamp in lamps:
+        try:
+            short_address = address.Short(lamp)
+            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
+
+            logger.debug("QueryActualLevel = %s", actual_level.value)
+            client.publish(
+                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
+                gen_ha_config(lamp, mqtt_base_topic),
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                actual_level.value,
+                retain=True,
+            )
+
+            client.publish(
+                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
+                retain=True,
+            )
+            logger.info(
+                "   - short address: %d, brightness level: %d",
+                short_address.address,
+                actual_level.value,
+            )
+
+        except DALIError as err:
+            logger.error("While initializing lamp<%s>: %s", lamp, err)
+        except Error as e:
+            print(e)
+
+
 def on_detect_changes_in_config(mqtt_client):
     """Callback when changes are detected in the configuration file."""
     logger.info("Reconnecting to server")
@@ -136,6 +177,12 @@ def on_message_cmd(mqtt_client, data_object, msg):
             )
         except DALIError as err:
             logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
+
+
+def on_message_scan_lamps_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT scan lamps command message"""
+    print("o")
+    scan_lamps(data_object["driver"])
 
 
 def on_message_brightness_cmd(mqtt_client, data_object, msg):
@@ -199,41 +246,7 @@ def on_connect(
     client.publish(
         MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic), MQTT_AVAILABLE, retain=True
     )
-    lamps = dali_scan(driver_object)
-    logger.info(
-        "Found %d lamps",
-        len(lamps),
-    )
-    for lamp in lamps:
-        try:
-            short_address = address.Short(lamp)
-            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
-
-            logger.debug("QueryActualLevel = %s", actual_level.value)
-            client.publish(
-                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                gen_ha_config(lamp, mqtt_base_topic),
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                actual_level.value,
-                retain=True,
-            )
-
-            client.publish(
-                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
-                retain=True,
-            )
-            logger.info(
-                "   - short address: %d, brightness level: %d",
-                short_address.address,
-                actual_level.value,
-            )
-
-        except DALIError as err:
-            logger.error("While initializing lamp<%s>: %s", lamp, err)
+    scan_lamps(driver_object)
 
 
 def create_mqtt_client(
@@ -257,6 +270,10 @@ def create_mqtt_client(
     mqttc.message_callback_add(
         MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"),
         on_message_brightness_cmd,
+    )
+    mqttc.message_callback_add(
+        MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
+        on_message_scan_lamps_cmd,
     )
     mqttc.on_message = on_message
     mqttc.connect(mqtt_server, mqtt_port, 60)
@@ -323,15 +340,12 @@ def main(args):
             retries += 1  # TODO reset on successfull connection
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument(
         f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
     )
-    parser.add_argument(
-        f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server"
-    )
+    parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
     parser.add_argument(
         f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
     )
@@ -339,7 +353,9 @@ if __name__ == "__main__":
         f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
     )
     parser.add_argument(
-        f"--{CONF_DALI_DRIVER.replace('_','-')}", help="DALI device driver", choices=DALI_DRIVERS
+        f"--{CONF_DALI_DRIVER.replace('_','-')}",
+        help="DALI device driver",
+        choices=DALI_DRIVERS,
     )
     parser.add_argument(
         f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
@@ -350,7 +366,11 @@ if __name__ == "__main__":
         help="Log level",
         choices=ALL_SUPPORTED_LOG_LEVELS,
     )
-    parser.add_argument(f"--{CONF_LOG_COLOR.replace('_','-')}", help="Coloring output", action="store_true")
+    parser.add_argument(
+        f"--{CONF_LOG_COLOR.replace('_','-')}",
+        help="Coloring output",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
