@@ -1,9 +1,13 @@
 """Class to represent dali lamps"""
 import json
+import logging
+import dali.gear.general as gear
+
 from consts import (
     __author__,
     __version__,
     __email__,
+    logger,
     MQTT_STATE_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_PAYLOAD_OFF,
@@ -12,11 +16,15 @@ from consts import (
     MQTT_DALI2MQTT_STATUS,
     MQTT_AVAILABLE,
     MQTT_NOT_AVAILABLE,
+    RESET_COLOR,
 )
 
 
 class Lamp:
-    def __init__(self, short_address, min_physical_level, min_level, level, max_level):
+    def __init__(
+        self, driver, short_address, min_physical_level, min_level, level, max_level
+    ):
+        self.driver = driver
         self.short_address = short_address
         self.min_physical_level = min_physical_level
         self.min_level = min_level
@@ -64,3 +72,7 @@ class Lamp:
         if not self.min_level <= value <= self.max_level and value != 0:
             raise ValueError
         self.__level = value
+        self.driver.send(gear.DAPC(self.short_address, self.level))
+        logger.debug(
+            "Set lamp <%s> brightness level to %s", self.short_address, self.level
+        )

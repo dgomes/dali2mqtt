@@ -20,6 +20,7 @@ from config import Config
 from lamp import Lamp
 
 from consts import (
+    logger,
     DALI_DRIVERS,
     DALI_SERVER,
     DEFAULT_CONFIG_FILE,
@@ -64,11 +65,6 @@ from consts import (
 )
 
 
-log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format)
-logger = logging.getLogger(__name__)
-
-
 def dali_scan(driver):
     """Scan a maximum number of dali devices."""
     lamps = []
@@ -102,6 +98,7 @@ def initialize_lamps(data_object, client):
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             lamp_object = Lamp(
+                driver_object,
                 lamp,
                 physical_minimum.value,
                 min_level.value,
@@ -110,7 +107,6 @@ def initialize_lamps(data_object, client):
             )
             data_object["all_lamps"][lamp] = lamp_object
 
-            logger.debug("QueryActualLevel = %s", actual_level.value)
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
                 lamp_object.gen_ha_config(mqtt_base_topic),
@@ -206,10 +202,6 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         try:
             level = int(msg.payload.decode("utf-8"))
             lamp_object.level = level
-            logger.debug("Set light <%s> brightness to %s", light, lamp_object.level)
-            data_object["driver"].send(
-                gear.DAPC(address.Short(light), lamp_object.level)
-            )
             if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
                 mqtt_client.publish(
