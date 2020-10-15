@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """Bridge between a DALI controller and an MQTT bus."""
-__author__ = "Diogo Gomes"
-__version__ = "0.0.1"
-__email__ = "diogogomes@gmail.com"
+
 
 import argparse
 import io
-import json
 import logging
 import re
 import yaml
@@ -20,8 +17,11 @@ from dali.command import YesNoResponse
 from dali.exceptions import DALIError
 
 from config import Config
+from lamp import Lamp
+from devicesnamesconfig import DevicesNamesConfig
 
 from consts import (
+    logger,
     DALI_DRIVERS,
     DALI_SERVER,
     DEFAULT_CONFIG_FILE,
@@ -66,41 +66,6 @@ from consts import (
 )
 
 
-log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format)
-logger = logging.getLogger(__name__)
-
-
-def gen_ha_config(light, mqtt_base_topic):
-    """Generate a automatic configuration for Home Assistant."""
-    json_config = {
-        "name": "DALI Light {}".format(light),
-        "unique_id": "DALI2MQTT_LIGHT_{}".format(light),
-        "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, light),
-        "command_topic": MQTT_COMMAND_TOPIC.format(mqtt_base_topic, light),
-        "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
-        "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(
-            mqtt_base_topic, light
-        ),
-        "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
-            mqtt_base_topic, light
-        ),
-        "brightness_scale": 254,
-        "on_command_type": "brightness",
-        "availability_topic": MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic),
-        "payload_available": MQTT_AVAILABLE,
-        "payload_not_available": MQTT_NOT_AVAILABLE,
-        "device": {
-            "identifiers": "dali2mqtt",
-            "name": "DALI Lights",
-            "sw_version": f"dali2mqtt {__version__}",
-            "model": "dali2mqtt",
-            "manufacturer": f"{__author__} <{__email__}>",
-        },
-    }
-    return json.dumps(json_config)
-
-
 def dali_scan(driver):
     """Scan a maximum number of dali devices."""
     lamps = []
@@ -119,6 +84,8 @@ def initialize_lamps(data_object, client):
     driver_object = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
     ha_prefix = data_object["ha_prefix"]
+    devices_names_config = data_object["devices_names_config"]
+    devices_names_config.load_devices_names_file()
     lamps = dali_scan(driver_object)
     logger.info(
         "Found %d lamps",
@@ -127,16 +94,31 @@ def initialize_lamps(data_object, client):
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
+            short_address_value = short_address.address
             actual_level = driver_object.send(gear.QueryActualLevel(short_address))
             physical_minimum = driver_object.send(
                 gear.QueryPhysicalMinimum(short_address)
             )
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
-            logger.debug("QueryActualLevel = %s", actual_level.value)
+            device_name = devices_names_config.get_device_name(short_address_value)
+            lamp = device_name
+
+            lamp_object = Lamp(
+                driver_object,
+                device_name,
+                short_address,
+                physical_minimum.value,
+                min_level.value,
+                actual_level.value,
+                max_level.value,
+            )
+
+            data_object["all_lamps"][lamp] = lamp_object
+
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                gen_ha_config(lamp, mqtt_base_topic),
+                lamp_object.gen_ha_config(mqtt_base_topic),
                 retain=True,
             )
             client.publish(
@@ -169,7 +151,7 @@ def initialize_lamps(data_object, client):
             )
             logger.info(
                 "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
-                short_address.address,
+                short_address_value,
                 actual_level.value,
                 min_level.value,
                 max_level.value,
@@ -189,11 +171,10 @@ def on_detect_changes_in_config(mqtt_client):
 def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
-    light = int(
-        re.search(
-            MQTT_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"), msg.topic
-        ).group(1)
-    )
+    light = re.search(
+        MQTT_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"), msg.topic
+    ).group(1)
+
     if msg.payload == MQTT_PAYLOAD_OFF:
         try:
             logger.debug("Set light <%s> to %s", light, msg.payload)
@@ -216,38 +197,47 @@ def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
 def on_message_brightness_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT brightness command message."""
     logger.debug("Brightness Command on %s: %s", msg.topic, msg.payload)
-    light = int(
-        re.search(
-            MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
-            msg.topic,
-        ).group(1)
-    )
+    light = re.search(
+        MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
+        msg.topic,
+    ).group(1)
     try:
-        level = int(msg.payload.decode("utf-8"))
-        if not 0 <= level <= 255:
-            raise ValueError
-        logger.debug("Set light <%s> brightness to %s", light, level)
-        data_object["driver"].send(gear.DAPC(address.Short(light), level))
-        if level == 0:
-            # 0 in DALI is turn off with fade out
+        if light not in data_object["all_lamps"]:
+            raise KeyError
+        lamp_object = data_object["all_lamps"][light]
+        level = None
+        try:
+            level = msg.payload.decode("utf-8")
+            level = int(level)
+            lamp_object.level = level
+            if lamp_object.level == 0:
+                # 0 in DALI is turn off with fade out
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_OFF,
+                    retain=True,
+                )
+            else:
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_ON,
+                    retain=True,
+                )
             mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_OFF,
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
+                lamp_object.level,
                 retain=True,
             )
-        else:
-            mqtt_client.publish(
-                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON,
-                retain=True,
+        except ValueError as err:
+            logger.error(
+                "Can't convert <%s> to integer %d..%d: %s",
+                str(level),
+                lamp_object.min_level,
+                lamp_object.max_level,
+                err,
             )
-        mqtt_client.publish(
-            MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-            level,
-            retain=True,
-        )
-    except ValueError as err:
-        logger.error("Can't convert <%s> to interger 0..255: %s", level, err)
+    except KeyError:
+        logger.error("Lamp %s doesn't exists", light)
 
 
 def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
@@ -279,7 +269,12 @@ def on_connect(
 
 
 def create_mqtt_client(
-    driver_object, mqtt_server, mqtt_port, mqtt_base_topic, ha_prefix
+    driver_object,
+    mqtt_server,
+    mqtt_port,
+    mqtt_base_topic,
+    devices_names_config,
+    ha_prefix,
 ):
     """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
@@ -289,6 +284,8 @@ def create_mqtt_client(
             "driver": driver_object,
             "base_topic": mqtt_base_topic,
             "ha_prefix": ha_prefix,
+            "devices_names_config": devices_names_config,
+            "all_lamps": {},
         },
     )
     mqttc.will_set(
@@ -331,6 +328,7 @@ def main(args):
         )
 
     logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[config.log_level])
+    devices_names_config = DevicesNamesConfig()
 
     dali_driver = None
     logger.debug("Using <%s> driver", config.dali_driver)
@@ -363,6 +361,7 @@ def main(args):
         mqttc = create_mqtt_client(
             dali_driver,
             *config.mqtt_conf,
+            devices_names_config,
             config.ha_discovery_prefix,
         )
         mqttc.loop_forever()
