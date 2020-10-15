@@ -202,6 +202,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         try:
             level = int(msg.payload.decode("utf-8"))
             lamp_object.level = level
+            logger.debug("Set light <%s> brightness to %s", light, lamp_object.level)
             if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
                 mqtt_client.publish(
