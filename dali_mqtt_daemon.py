@@ -25,6 +25,7 @@ from consts import (
     DALI_DRIVERS,
     DALI_SERVER,
     DEFAULT_CONFIG_FILE,
+    DEFAULT_DEVICES_NAMES_FILE,
     DEFAULT_MQTT_PORT,
     DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
@@ -32,6 +33,7 @@ from consts import (
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     CONF_CONFIG,
+    CONF_DEVICES_NAMES_FILE,
     CONF_DALI_DRIVER,
     CONF_DALI_LAMPS,
     CONF_LOG_COLOR,
@@ -99,6 +101,7 @@ def initialize_lamps(data_object, client):
             physical_minimum = driver_object.send(
                 gear.QueryPhysicalMinimum(short_address)
             )
+
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             device_name = devices_names_config.get_device_name(short_address_value)
@@ -328,7 +331,7 @@ def main(args):
         )
 
     logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[config.log_level])
-    devices_names_config = DevicesNamesConfig()
+    devices_names_config = DevicesNamesConfig(config.devices_names_file)
 
     dali_driver = None
     logger.debug("Using <%s> driver", config.dali_driver)
@@ -376,6 +379,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument(
         f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
+    )
+    parser.add_argument(
+        f"--{CONF_DEVICES_NAMES_FILE.replace('_','-')}", help="devices names file"
     )
     parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
     parser.add_argument(

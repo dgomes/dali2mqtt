@@ -11,6 +11,7 @@ DALI_SERVER = "dali_server"
 DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER, "dummy"]
 
 CONF_CONFIG = "config"
+CONF_DEVICES_NAMES_FILE = "devices_names"
 CONF_MQTT_SERVER = "mqtt_server"
 CONF_MQTT_PORT = "mqtt_port"
 CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
@@ -21,6 +22,7 @@ CONF_LOG_LEVEL = "log_level"
 CONF_LOG_COLOR = "log_color"
 
 DEFAULT_CONFIG_FILE = "config.yaml"
+DEFAULT_DEVICES_NAMES_FILE = "devices.yaml"
 DEFAULT_MQTT_SERVER = "localhost"
 DEFAULT_MQTT_PORT = "1883"
 DEFAULT_MQTT_BASE_TOPIC = "dali2mqtt"

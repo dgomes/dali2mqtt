@@ -5,11 +5,7 @@ import voluptuous as vol
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver as Observer
 
-from consts import RESET_COLOR
-
-log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format)
-logger = logging.getLogger(__name__)
+from consts import logger
 
 from consts import (
     DEFAULT_CONFIG_FILE,
@@ -17,6 +13,7 @@ from consts import (
     DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
+    DEFAULT_DEVICES_NAMES_FILE,
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     DEFAULT_DALI_DRIVER,
@@ -28,9 +25,10 @@ from consts import (
     CONF_LOG_COLOR,
     CONF_LOG_LEVEL,
     CONF_HA_DISCOVERY_PREFIX,
+    CONF_DEVICES_NAMES_FILE,
     CONF_MQTT_BASE_TOPIC,
     CONF_MQTT_PORT,
-    CONF_MQTT_SERVER
+    CONF_MQTT_SERVER,
 )
 
 
@@ -47,11 +45,13 @@ CONF_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX
         ): str,
+        vol.Optional(CONF_DEVICES_NAMES_FILE, default=DEFAULT_DEVICES_NAMES_FILE): str,
         vol.Optional(CONF_LOG_LEVEL, default=DEFAULT_LOG_LEVEL): vol.In(
             ALL_SUPPORTED_LOG_LEVELS
         ),
         vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
-    }, extra=True,
+    },
+    extra=True,
 )
 
 
@@ -108,14 +108,14 @@ class Config:
         """Save configuration back to yaml file."""
         try:
             with open(self._path, "w", encoding="utf8") as outfile:
-                cfg = self._config.pop(CONF_CONFIG) #temporary displace config file
+                cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
                 yaml.dump(
                     self._config, outfile, default_flow_style=False, allow_unicode=True
                 )
         except Exception as err:
             logger.error("Could not save configuration: %s", err)
         finally:
-            self._config[CONF_CONFIG] = cfg #restore
+            self._config[CONF_CONFIG] = cfg  # restore
 
     def __del__(self):
         """Release watchdog."""
@@ -151,3 +151,7 @@ class Config:
     @property
     def log_color(self):
         return self._config[CONF_LOG_COLOR]
+
+    @property
+    def devices_names_file(self):
+        return self._config[CONF_DEVICES_NAMES_FILE]
