@@ -45,7 +45,7 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
-HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
+HA_DISCOVERY_PREFIX = "{}/light/{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2
