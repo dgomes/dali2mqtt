@@ -104,7 +104,7 @@ def initialize_lamps(data_object, client):
 
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
-            device_name = devices_names_config.get_device_name(short_address_value)
+            device_name = devices_names_config.get_friendly_name(short_address_value)
             lamp = device_name
 
             lamp_object = Lamp(
@@ -117,7 +117,8 @@ def initialize_lamps(data_object, client):
                 max_level.value,
             )
 
-            data_object["all_lamps"][lamp] = lamp_object
+            data_object["all_lamps"][lamp_object.device_name] = lamp_object
+            lamp = lamp_object.device_name
 
             client.publish(
                 HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
@@ -164,6 +165,9 @@ def initialize_lamps(data_object, client):
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
+    if devices_names_config.is_devices_file_empty():
+        devices_names_config.save_devices_names_file(data_object["all_lamps"])
+
 
 def on_detect_changes_in_config(mqtt_client):
     """Callback when changes are detected in the configuration file."""
@@ -177,11 +181,11 @@ def on_message_cmd(mqtt_client, data_object, msg):
     light = re.search(
         MQTT_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"), msg.topic
     ).group(1)
-
     if msg.payload == MQTT_PAYLOAD_OFF:
         try:
+            lamp_object = data_object["all_lamps"][light]
             logger.debug("Set light <%s> to %s", light, msg.payload)
-            data_object["driver"].send(gear.Off(address.Short(light)))
+            data_object["driver"].send(gear.Off(lamp_object.short_address))
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_OFF,
@@ -189,6 +193,8 @@ def on_message_cmd(mqtt_client, data_object, msg):
             )
         except DALIError as err:
             logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
+        except KeyError:
+            logger.error("Lamp %s doesn't exists", light)
 
 
 def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
@@ -220,6 +226,9 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
                     MQTT_PAYLOAD_OFF,
                     retain=True,
                 )
+                data_object["driver"].send(gear.Off(lamp_object.short_address.address))
+                logger.debug("Set light <%s> to OFF", light)
+
             else:
                 mqtt_client.publish(
                     MQTT_STATE_TOPIC.format(data_object["base_topic"], light),

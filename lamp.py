@@ -24,7 +24,7 @@ class Lamp:
     def __init__(
         self,
         driver,
-        device_name,
+        friendly_name,
         short_address,
         min_physical_level,
         min_level,
@@ -33,7 +33,8 @@ class Lamp:
     ):
         self.driver = driver
         self.short_address = short_address
-        self.device_name = device_name
+        self.friendly_name = friendly_name
+        self.device_name = friendly_name.replace(" ", "_").lower()
         self.min_physical_level = min_physical_level
         self.min_level = min_level
         self.max_level = max_level
@@ -43,7 +44,7 @@ class Lamp:
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
         json_config = {
-            "name": "DALI Light {}".format(self.device_name),
+            "name": self.friendly_name,
             "unique_id": "DALI2MQTT_LIGHT_{}".format(self.device_name),
             "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.device_name),
             "command_topic": MQTT_COMMAND_TOPIC.format(
@@ -82,5 +83,5 @@ class Lamp:
         self.__level = value
         self.driver.send(gear.DAPC(self.short_address, self.level))
         logger.debug(
-            "Set lamp <%s> brightness level to %s", self.device_name, self.level
+            "Set lamp <%s> brightness level to %s", self.friendly_name, self.level
         )

@@ -30,10 +30,27 @@ class DevicesNamesConfig:
                 logger.error("In devices file %s: %s", self._path, error)
                 raise DevicesNamesConfigLoadError()
 
-    def get_device_name(self, short_address_value):
-        device_name = None
+    def save_devices_names_file(self, all_lamps):
+        self._devices_names = {}
+        for lamp_object in all_lamps.values():
+            self._devices_names[lamp_object.short_address.address] = {
+                "friendly_name": str(lamp_object.short_address.address)
+            }
+        with open(self._path, "w") as outfile:
+            yaml.dump(
+                self._devices_names,
+                outfile,
+                default_flow_style=False,
+                allow_unicode=True,
+            )
+
+    def is_devices_file_empty(self):
+        return len(self._devices_names) == 0
+
+    def get_friendly_name(self, short_address_value):
+        friendly_name = None
         try:
-            device_name = self._devices_names[short_address_value]["friendly_name"]
+            friendly_name = self._devices_names[short_address_value]["friendly_name"]
         except KeyError:
-            device_name = short_address_value
-        return device_name
+            friendly_name = short_address_value
+        return friendly_name
