@@ -96,7 +96,6 @@ def initialize_lamps(data_object, client):
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
-            short_address_value = short_address.address
             actual_level = driver_object.send(gear.QueryActualLevel(short_address))
             physical_minimum = driver_object.send(
                 gear.QueryPhysicalMinimum(short_address)
@@ -104,7 +103,7 @@ def initialize_lamps(data_object, client):
 
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
-            device_name = devices_names_config.get_friendly_name(short_address_value)
+            device_name = devices_names_config.get_friendly_name(short_address.address)
             lamp = device_name
 
             lamp_object = Lamp(
@@ -155,7 +154,7 @@ def initialize_lamps(data_object, client):
             )
             logger.info(
                 "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
-                short_address_value,
+                short_address.address,
                 actual_level.value,
                 min_level.value,
                 max_level.value,
