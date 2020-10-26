@@ -22,13 +22,16 @@ class DevicesNamesConfig:
 
     def load_devices_names_file(self):
         """Load configuration from yaml file."""
-        with open(self._path, "r") as infile:
-            logger.debug("Loading devices names from <%s>", self._path)
-            try:
-                self._devices_names = yaml.safe_load(infile) or {}
-            except yaml.YAMLError as error:
-                logger.error("In devices file %s: %s", self._path, error)
-                raise DevicesNamesConfigLoadError()
+        try:
+            with open(self._path, "r") as infile:
+                logger.debug("Loading devices names from <%s>", self._path)
+                try:
+                    self._devices_names = yaml.safe_load(infile) or {}
+                except yaml.YAMLError as error:
+                    logger.error("In devices file %s: %s", self._path, error)
+                    raise DevicesNamesConfigLoadError()
+        except Exception as err:
+            logger.error("Could not load device names config: %s", err)
 
     def save_devices_names_file(self, all_lamps):
         self._devices_names = {}
@@ -36,13 +39,16 @@ class DevicesNamesConfig:
             self._devices_names[lamp_object.short_address.address] = {
                 "friendly_name": str(lamp_object.short_address.address)
             }
-        with open(self._path, "w") as outfile:
-            yaml.dump(
-                self._devices_names,
-                outfile,
-                default_flow_style=False,
-                allow_unicode=True,
-            )
+        try:
+            with open(self._path, "w") as outfile:
+                yaml.dump(
+                    self._devices_names,
+                    outfile,
+                    default_flow_style=False,
+                    allow_unicode=True,
+                )
+        except Exception as err:
+            logger.error("Could not save device names config: %s", err)
 
     def is_devices_file_empty(self):
         return len(self._devices_names) == 0
