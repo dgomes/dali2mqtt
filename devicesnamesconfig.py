@@ -25,11 +25,10 @@ class DevicesNamesConfig:
         try:
             with open(self._path, "r") as infile:
                 logger.debug("Loading devices names from <%s>", self._path)
-                try:
-                    self._devices_names = yaml.safe_load(infile) or {}
-                except yaml.YAMLError as error:
-                    logger.error("In devices file %s: %s", self._path, error)
-                    raise DevicesNamesConfigLoadError()
+                self._devices_names = yaml.safe_load(infile) or {}
+        except yaml.YAMLError as error:
+            logger.error("In devices file %s: %s", self._path, error)
+            raise DevicesNamesConfigLoadError()
         except Exception as err:
             logger.error("Could not load device names config: %s", err)
 
