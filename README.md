@@ -47,15 +47,15 @@ Then just edit the file accordingly. You can also create the file with the right
 
 ### Devices friendly names
 Default all lamps will be displayed in Home Assistant by short address, numbers from 0 to 63
-You can give lamps special names to identify lamps by name. After first run of script, `devices.yaml` with all lamps will created.
-Example of filled `devices.yaml`:
+You can give lamps special names to help you identify lamps by name. On the first execution, `devices.yaml` file will be create with all lamps available.
+Example `devices.yaml`:
 ```yaml
 0: 
   "friendly_name": "Lamp in kitchen"
 8:
   "friendly_name": "Lamp in bathroom"
 ```
-If you want use lamps by post messages on MQTT, remember that friendly names are converted to slug strings, so lamp with address 0 (from example) in MQTT will be named "lamp-in-kitchen"
+Please note that MQTT topics support a minimum set of characters, therefore friendly names are converted to slug strings, so a lamp with address 0 (as an example) in MQTT will be named "lamp-in-kitchen"
 
 ### Setup systemd
 edit dali2mqtt.service and change the path of python3 to the path of your venv, after:
