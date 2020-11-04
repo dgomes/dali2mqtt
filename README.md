@@ -1,5 +1,6 @@
+
 # dali2mqtt
-DALI &lt;-> MQTT bridge
+DALI <-> MQTT bridge
 
 ## About
 
@@ -20,10 +21,10 @@ pip install -r requirements.txt
 You can create a configuration file when you call the daemon the first time
 
 ```bash
-venv/bin/python3 ./dali-mqtt-daemon.py
+venv/bin/python3 ./dali_mqtt_daemon.py
 ```
 
-Then just edit the file accordingly. You can also create the file with the right values, by using the arguments of dali-mqtt-daemon.py:
+Then just edit the file accordingly. You can also create the file with the right values, by using the arguments of dali_mqtt_daemon.py:
 
 ```
   --config CONFIG       configuration file
@@ -39,7 +40,22 @@ Then just edit the file accordingly. You can also create the file with the right
                         Number of lamps to scan
   --ha-discover-prefix HA_DISCOVER_PREFIX
                         HA discover mqtt prefix
+  --log-level {critical,error,warning,info,debug}  
+                        Log level  
+  --log-color Coloring output
 ```
+
+### Devices friendly names
+Default all lamps will be displayed in Home Assistant by short address, numbers from 0 to 63
+You can give lamps special names to help you identify lamps by name. On the first execution, `devices.yaml` file will be create with all lamps available.
+Example `devices.yaml`:
+```yaml
+0: 
+  "friendly_name": "Lamp in kitchen"
+8:
+  "friendly_name": "Lamp in bathroom"
+```
+Please note that MQTT topics support a minimum set of characters, therefore friendly names are converted to slug strings, so a lamp with address 0 (as an example) in MQTT will be named "lamp-in-kitchen"
 
 ### Setup systemd
 edit dali2mqtt.service and change the path of python3 to the path of your venv, after:
@@ -67,5 +83,5 @@ sudo systemctl status dali2mqtt.service
 
 ### Command line arguments and configuration file
 
-When the daemon first runs, it creates a default `config.ini` file.
+When the daemon first runs, it creates a default `config.yaml` file.
 You can edit the file to customize your setup.

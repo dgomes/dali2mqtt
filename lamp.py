@@ -2,12 +2,12 @@
 import json
 import logging
 import dali.gear.general as gear
+from slugify import slugify
 
 from consts import (
     __author__,
     __version__,
     __email__,
-    logger,
     MQTT_STATE_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_PAYLOAD_OFF,
@@ -17,36 +17,52 @@ from consts import (
     MQTT_AVAILABLE,
     MQTT_NOT_AVAILABLE,
     RESET_COLOR,
+    LOG_FORMAT,
+    ALL_SUPPORTED_LOG_LEVELS,
 )
+
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class Lamp:
     def __init__(
-        self, driver, short_address, min_physical_level, min_level, level, max_level
+        self,
+        log_level,
+        driver,
+        friendly_name,
+        short_address,
+        min_physical_level,
+        min_level,
+        level,
+        max_level,
     ):
         self.driver = driver
         self.short_address = short_address
+        self.friendly_name = friendly_name
+        self.device_name = slugify(friendly_name)
         self.min_physical_level = min_physical_level
         self.min_level = min_level
         self.max_level = max_level
         self.level = level
+        logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
         pass
 
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
         json_config = {
-            "name": "DALI Light {}".format(self.short_address),
-            "unique_id": "DALI2MQTT_LIGHT_{}".format(self.short_address),
-            "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.short_address),
+            "name": self.friendly_name,
+            "unique_id": "DALI2MQTT_LIGHT_{}".format(self.device_name),
+            "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.device_name),
             "command_topic": MQTT_COMMAND_TOPIC.format(
-                mqtt_base_topic, self.short_address
+                mqtt_base_topic, self.device_name
             ),
             "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
             "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(
-                mqtt_base_topic, self.short_address
+                mqtt_base_topic, self.device_name
             ),
             "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
-                mqtt_base_topic, self.short_address
+                mqtt_base_topic, self.device_name
             ),
             "brightness_scale": self.max_level,
             "on_command_type": "brightness",
@@ -74,5 +90,5 @@ class Lamp:
         self.__level = value
         self.driver.send(gear.DAPC(self.short_address, self.level))
         logger.debug(
-            "Set lamp <%s> brightness level to %s", self.short_address, self.level
+            "Set lamp <%s> brightness level to %s", self.friendly_name, self.level
         )

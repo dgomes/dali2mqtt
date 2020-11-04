@@ -11,6 +11,7 @@ DALI_SERVER = "dali_server"
 DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER, "dummy"]
 
 CONF_CONFIG = "config"
+CONF_DEVICES_NAMES_FILE = "devices_names"
 CONF_MQTT_SERVER = "mqtt_server"
 CONF_MQTT_PORT = "mqtt_port"
 CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
@@ -21,6 +22,7 @@ CONF_LOG_LEVEL = "log_level"
 CONF_LOG_COLOR = "log_color"
 
 DEFAULT_CONFIG_FILE = "config.yaml"
+DEFAULT_DEVICES_NAMES_FILE = "devices.yaml"
 DEFAULT_MQTT_SERVER = "localhost"
 DEFAULT_MQTT_PORT = "1883"
 DEFAULT_MQTT_BASE_TOPIC = "dali2mqtt"
@@ -43,7 +45,7 @@ MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
-HA_DISCOVERY_PREFIX = "{}/light/dali2mqtt_{}/config"
+HA_DISCOVERY_PREFIX = "{}/light/{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2
@@ -61,7 +63,4 @@ ALL_SUPPORTED_LOG_LEVELS = {
 RESET_COLOR = "\x1b[0m"
 RED_COLOR = "\x1b[31;21m"
 YELLOW_COLOR = "\x1b[33;21m"
-
-log_format = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
-logging.basicConfig(format=log_format)
-logger = logging.getLogger(__name__)
+LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
