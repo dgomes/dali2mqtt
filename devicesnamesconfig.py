@@ -1,7 +1,11 @@
 """Configuration Object."""
 import yaml
+import logging
 
-from consts import logger
+from consts import LOG_FORMAT, ALL_SUPPORTED_LOG_LEVELS
+
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class DevicesNamesConfigLoadError(Exception):
@@ -9,9 +13,11 @@ class DevicesNamesConfigLoadError(Exception):
 
 
 class DevicesNamesConfig:
-    def __init__(self, filename):
+    def __init__(self, log_level, filename):
         self._path = filename
         self._devices_names = {}
+
+        logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
         # Load from file
         try:
             self.load_devices_names_file()

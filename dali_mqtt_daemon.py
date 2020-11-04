@@ -21,7 +21,6 @@ from lamp import Lamp
 from devicesnamesconfig import DevicesNamesConfig
 
 from consts import (
-    logger,
     DALI_DRIVERS,
     DALI_SERVER,
     DEFAULT_CONFIG_FILE,
@@ -65,7 +64,11 @@ from consts import (
     RESET_COLOR,
     RED_COLOR,
     YELLOW_COLOR,
+    LOG_FORMAT,
 )
+
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 def dali_scan(driver):
@@ -86,6 +89,7 @@ def initialize_lamps(data_object, client):
     driver_object = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
     ha_prefix = data_object["ha_prefix"]
+    log_level = data_object["log_level"]
     devices_names_config = data_object["devices_names_config"]
     devices_names_config.load_devices_names_file()
     lamps = dali_scan(driver_object)
@@ -107,6 +111,7 @@ def initialize_lamps(data_object, client):
             lamp = device_name
 
             lamp_object = Lamp(
+                log_level,
                 driver_object,
                 device_name,
                 short_address,
@@ -286,6 +291,7 @@ def create_mqtt_client(
     mqtt_base_topic,
     devices_names_config,
     ha_prefix,
+    log_level,
 ):
     """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
@@ -296,6 +302,7 @@ def create_mqtt_client(
             "base_topic": mqtt_base_topic,
             "ha_prefix": ha_prefix,
             "devices_names_config": devices_names_config,
+            "log_level": log_level,
             "all_lamps": {},
         },
     )
@@ -339,7 +346,9 @@ def main(args):
         )
 
     logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[config.log_level])
-    devices_names_config = DevicesNamesConfig(config.devices_names_file)
+    devices_names_config = DevicesNamesConfig(
+        config.log_level, config.devices_names_file
+    )
 
     dali_driver = None
     logger.debug("Using <%s> driver", config.dali_driver)
@@ -374,6 +383,7 @@ def main(args):
             *config.mqtt_conf,
             devices_names_config,
             config.ha_discovery_prefix,
+            config.log_level,
         )
         mqttc.loop_forever()
         if should_backoff:

@@ -8,7 +8,6 @@ from consts import (
     __author__,
     __version__,
     __email__,
-    logger,
     MQTT_STATE_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_PAYLOAD_OFF,
@@ -18,12 +17,18 @@ from consts import (
     MQTT_AVAILABLE,
     MQTT_NOT_AVAILABLE,
     RESET_COLOR,
+    LOG_FORMAT,
+    ALL_SUPPORTED_LOG_LEVELS,
 )
+
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class Lamp:
     def __init__(
         self,
+        log_level,
         driver,
         friendly_name,
         short_address,
@@ -40,6 +45,7 @@ class Lamp:
         self.min_level = min_level
         self.max_level = max_level
         self.level = level
+        logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
         pass
 
     def gen_ha_config(self, mqtt_base_topic):

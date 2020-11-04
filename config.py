@@ -5,8 +5,6 @@ import voluptuous as vol
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver as Observer
 
-from consts import logger
-
 from consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_PORT,
@@ -19,6 +17,7 @@ from consts import (
     DEFAULT_DALI_DRIVER,
     DALI_DRIVERS,
     ALL_SUPPORTED_LOG_LEVELS,
+    LOG_FORMAT,
     CONF_CONFIG,
     CONF_DALI_DRIVER,
     CONF_DALI_LAMPS,
@@ -53,6 +52,9 @@ CONF_SCHEMA = vol.Schema(
     },
     extra=True,
 )
+
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class Config:
