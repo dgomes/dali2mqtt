@@ -41,6 +41,8 @@ from consts import (
     CONF_MQTT_BASE_TOPIC,
     CONF_MQTT_PORT,
     CONF_MQTT_SERVER,
+    CONF_MQTT_USERNAME,
+    CONF_MQTT_PASSWORD,
     HA_DISCOVERY_PREFIX,
     HASSEB,
     MIN_HASSEB_FIRMWARE_VERSION,
@@ -104,7 +106,6 @@ def initialize_lamps(data_object, client):
             physical_minimum = driver_object.send(
                 gear.QueryPhysicalMinimum(short_address)
             )
-
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             device_name = devices_names_config.get_friendly_name(short_address.address)
@@ -171,6 +172,7 @@ def initialize_lamps(data_object, client):
 
     if devices_names_config.is_devices_file_empty():
         devices_names_config.save_devices_names_file(data_object["all_lamps"])
+    logger.info("initialize_lamps finished")
 
 
 def on_detect_changes_in_config(mqtt_client):
@@ -288,6 +290,8 @@ def create_mqtt_client(
     driver_object,
     mqtt_server,
     mqtt_port,
+    mqtt_username,
+    mqtt_password,
     mqtt_base_topic,
     devices_names_config,
     ha_prefix,
@@ -324,6 +328,8 @@ def create_mqtt_client(
         on_message_reinitialize_lamps_cmd,
     )
     mqttc.on_message = on_message
+    if mqtt_username:
+        mqttc.username_pw_set(mqtt_username, mqtt_password)
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
