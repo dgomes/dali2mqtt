@@ -28,6 +28,8 @@ from consts import (
     CONF_MQTT_BASE_TOPIC,
     CONF_MQTT_PORT,
     CONF_MQTT_SERVER,
+    CONF_MQTT_USERNAME,
+    CONF_MQTT_PASSWORD,
 )
 
 
@@ -135,6 +137,8 @@ class Config:
         return (
             self._config[CONF_MQTT_SERVER],
             self._config[CONF_MQTT_PORT],
+            self._config[CONF_MQTT_USERNAME],
+            self._config[CONF_MQTT_PASSWORD],
             self._config[CONF_MQTT_BASE_TOPIC],
         )
 
