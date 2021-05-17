@@ -86,32 +86,6 @@ def dali_scan(driver):
             logger.warning("%s not present: %s", lamp, err)
     return lamps
 
-
-def scan_groups(dali_driver, lamps):
-    logger.info("Scanning for groups")
-    groups = dict.fromkeys(range(16), [])
-    for lamp in lamps:
-        try:
-            logging.debug("Search for groups for Lamp {}".format(lamp))
-            group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
-            group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
-
-            lamp_groups = []
-
-            for i in range(8):
-                if (group1 & 1<<i) != 0:
-                    groups[i].append(lamp)
-                    lamp_groups.append(i)
-            for i in range(8):
-                if (group2 & 1<<i) != 0:
-                    groups[i+7].append(lamp)
-                    lamp_groups.append(i+8)
-            logging.debug("Lamp {} is in groups {}".format(lamp, lamp_groups))
-        except Exception as e:
-            logger.warning("Can't get groups for lamp %s: %s", lamp, e)
-    logger.info("Finished scanning for groups")
-    return groups
-
 def initialize_lamps(data_object, client):
     driver_object = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
@@ -120,7 +94,6 @@ def initialize_lamps(data_object, client):
     devices_names_config = data_object["devices_names_config"]
     devices_names_config.load_devices_names_file()
     lamps = dali_scan(driver_object)
-    groups = scan_groups(driver_object, lamps)
     logger.info(
         "Found %d lamps",
         len(lamps),
