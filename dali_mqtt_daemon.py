@@ -86,7 +86,6 @@ def dali_scan(driver):
             logger.warning("%s not present: %s", lamp, err)
     return lamps
 
-
 def initialize_lamps(data_object, client):
     driver_object = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
@@ -410,6 +409,12 @@ if __name__ == "__main__":
     parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
     parser.add_argument(
         f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
+    )
+    parser.add_argument(
+        f"--{CONF_MQTT_USERNAME.replace('_','-')}", help="MQTT username"
+    )
+    parser.add_argument(
+        f"--{CONF_MQTT_PASSWORD.replace('_','-')}", help="MQTT password"
     )
     parser.add_argument(
         f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
