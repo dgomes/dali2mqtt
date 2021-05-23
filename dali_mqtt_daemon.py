@@ -72,7 +72,6 @@ from consts import (
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
-
 def dali_scan(driver):
     """Scan a maximum number of dali devices."""
     lamps = []
@@ -82,10 +81,10 @@ def dali_scan(driver):
             present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
             if isinstance(present, YesNoResponse) and present.value:
                 lamps.append(lamp)
+                logger.debug("Found lamp at address %d", lamp)
         except DALIError as err:
             logger.warning("%s not present: %s", lamp, err)
     return lamps
-
 
 def scan_groups(dali_driver, lamps):
     logger.info("Scanning for groups")
@@ -96,17 +95,23 @@ def scan_groups(dali_driver, lamps):
             group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
             group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
 
+            logger.debug("Group 0-7: %d", group1)
+            logger.debug("Group 8-15: %d", group2)
+
             lamp_groups = []
 
             for i in range(8):
-                if (group1 & 1<<i) != 0:
+                checkgroup = 1<<i
+                logging.debug("Check pattern: %d", checkgroup)
+                if (group1 & checkgroup) > 0:
                     groups[i].append(lamp)
                     lamp_groups.append(i)
-                if (group2 & 1<<i) != 0:
-                    groups[i+7].append(lamp)
+                if (group2 & checkgroup) != 0:
+                    groups[i+8].append(lamp)
                     lamp_groups.append(i+8)
-
-            logging.debug("Lamp {} is in groups {}".format(lamp, lamp_groups))
+            
+            logger.debug("Lamp %d is in groups %s",lamp, lamp_groups)
+            
         except Exception as e:
             logger.warning("Can't get groups for lamp %s: %s", lamp, e)
     logger.info("Finished scanning for groups")
@@ -120,11 +125,11 @@ def initialize_lamps(data_object, client):
     devices_names_config = data_object["devices_names_config"]
     devices_names_config.load_devices_names_file()
     lamps = dali_scan(driver_object)
-    groups = scan_groups(driver_object, lamps)
     logger.info(
         "Found %d lamps",
         len(lamps),
     )
+    groups = scan_groups(driver_object, lamps)
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
