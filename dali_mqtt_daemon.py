@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Bridge between a DALI controller and an MQTT bus."""
 
-
 import argparse
 import io
 import logging
@@ -88,7 +87,7 @@ def dali_scan(driver):
 
 def scan_groups(dali_driver, lamps):
     logger.info("Scanning for groups")
-    groups = dict.fromkeys(range(16), [])
+    groups = {}
     for lamp in lamps:
         try:
             logging.debug("Search for groups for Lamp {}".format(lamp))
@@ -103,10 +102,14 @@ def scan_groups(dali_driver, lamps):
             for i in range(8):
                 checkgroup = 1<<i
                 logging.debug("Check pattern: %d", checkgroup)
-                if (group1 & checkgroup) > 0:
+                if (group1 & checkgroup) == checkgroup:
+                    if not i in groups:
+                      groups[i]=[]
                     groups[i].append(lamp)
                     lamp_groups.append(i)
                 if (group2 & checkgroup) != 0:
+                    if not i+8 in groups:
+                      groups[i+8]=[]
                     groups[i+8].append(lamp)
                     lamp_groups.append(i+8)
             
@@ -201,6 +204,81 @@ def initialize_lamps(data_object, client):
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
+    for group in groups.keys():
+        try:
+            logger.debug("Group %s" % group)
+            group_address = address.Group(int(group))
+            
+            actual_level = driver_object.send(gear.QueryActualLevel(group_address))
+            physical_minimum = driver_object.send(
+                gear.QueryPhysicalMinimum(group_address)
+            )
+            min_level = driver_object.send(gear.QueryMinLevel(group_address))
+            max_level = driver_object.send(gear.QueryMaxLevel(group_address))
+            device_name = 'group_%s' % group
+            lamp = device_name
+            logger.debug("Group Name: %s" % lamp)
+
+            lamp_object = Lamp(
+                log_level,
+                driver_object,
+                device_name,
+                group_address,
+                physical_minimum.value,
+                min_level.value,
+                actual_level.value,
+                max_level.value,
+            )
+
+            data_object["all_lamps"][lamp_object.device_name] = lamp_object
+            lamp = lamp_object.device_name
+
+            client.publish(
+                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
+                lamp_object.gen_ha_config(mqtt_base_topic),
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                actual_level.value,
+                retain=True,
+            )
+
+            client.publish(
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                max_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                min_level.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
+                    mqtt_base_topic, lamp
+                ),
+                physical_minimum.value,
+                retain=True,
+            )
+            client.publish(
+                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
+                retain=True,
+            )
+            logger.info(
+                "   - group address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
+                group_address.group,
+                actual_level.value,
+                min_level.value,
+                max_level.value,
+                physical_minimum.value,
+            )
+
+        except DALIError as err:
+            logger.error("While initializing group <%s>: %s", lamp, err)
+
+
     if devices_names_config.is_devices_file_empty():
         devices_names_config.save_devices_names_file(data_object["all_lamps"])
     logger.info("initialize_lamps finished")
@@ -248,9 +326,15 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         msg.topic,
     ).group(1)
     try:
-        if light not in data_object["all_lamps"]:
-            raise KeyError
-        lamp_object = data_object["all_lamps"][light]
+        if 'group_' in light:
+          group = int(re.search('group_(\d+)', light).group(1))
+          lamp_object=data_object["all_lamps"][group]
+        else:
+          if light not in data_object["all_lamps"]:
+              raise KeyError
+              
+          lamp_object = data_object["all_lamps"][light]
+          
         level = None
         try:
             level = msg.payload.decode("utf-8")
@@ -263,7 +347,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
                     MQTT_PAYLOAD_OFF,
                     retain=True,
                 )
-                data_object["driver"].send(gear.Off(lamp_object.short_address.address))
+                data_object["driver"].send(gear.Off(lamp_object.short_address))
                 logger.debug("Set light <%s> to OFF", light)
 
             else:
