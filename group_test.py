@@ -20,3 +20,4 @@ for i in range(8):
   sleep(1)
   dali_driver.send(gear.DAPC(group_address,254))
   sleep(1)
+  

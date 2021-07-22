@@ -94,8 +94,8 @@ def scan_groups(dali_driver, lamps):
             group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
             group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
 
-            logger.debug("Group 0-7: %d", group1)
-            logger.debug("Group 8-15: %d", group2)
+#            logger.debug("Group 0-7: %d", group1)
+#            logger.debug("Group 8-15: %d", group2)
 
             lamp_groups = []
 
@@ -205,6 +205,7 @@ def initialize_lamps(data_object, client):
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
     for group in groups.keys():
+        logger.debug("Publishing group %d", group)
         try:
             logger.debug("Group %s" % group)
             group_address = address.Group(int(group))
@@ -267,7 +268,7 @@ def initialize_lamps(data_object, client):
                 retain=True,
             )
             logger.info(
-                "   - group address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
+                "   - group address: %s, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
                 group_address.group,
                 actual_level.value,
                 min_level.value,
@@ -276,7 +277,7 @@ def initialize_lamps(data_object, client):
             )
 
         except DALIError as err:
-            logger.error("While initializing group <%s>: %s", lamp, err)
+            logger.error("Error while initializing group <%s>: %s", lamp, err)
 
 
     if devices_names_config.is_devices_file_empty():
@@ -332,7 +333,6 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         else:
           if light not in data_object["all_lamps"]:
               raise KeyError
-              
           lamp_object = data_object["all_lamps"][light]
           
         level = None
