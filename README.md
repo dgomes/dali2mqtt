@@ -8,6 +8,10 @@ This daemon is inspired in [zigbee2mqtt](https://github.com/Koenkk/zigbee2mqtt) 
 
 Previously I developed a Home Assistant custom component (https://github.com/dgomes/home-assistant-custom-components/tree/master/light) but I've since decided to run Home Assistant in another device, away from the physical DALI Bus.
 
+## Supported Devices
+
+This daemon relies in [python-dali](https://github.com/sde1000/python-dali) so all devices supported by this library should also be supported by dali2mqtt.
+
 ## How to use
 
 ### Create a Virtual Environment (recommended) and install the requirements
@@ -32,6 +36,10 @@ Then just edit the file accordingly. You can also create the file with the right
                         MQTT server
   --mqtt-port MQTT_PORT
                         MQTT port
+  --mqtt-username MQTT_USERNAME
+                        MQTT user name
+  --mqtt-password MQTT_PASSWORD
+                        MQTT password
   --mqtt-base-topic MQTT_BASE_TOPIC
                         MQTT base topic
   --dali-driver {hasseb,tridonic,dali_server}
