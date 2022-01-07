@@ -217,8 +217,9 @@ def initialize_lamps(data_object, client):
             min_level = driver_object.send(gear.QueryMinLevel(group_address))
             max_level = driver_object.send(gear.QueryMaxLevel(group_address))
             device_name = f"group_{group}"
-            goup_lamp = device_name
-            logger.debug("Group Name: %s", goup_lamp)
+
+            group_lamp = device_name
+            logger.debug("Group Name: %s", group_lamp)
 
             lamp_object = Lamp(
                 log_level,
@@ -232,38 +233,38 @@ def initialize_lamps(data_object, client):
             )
 
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
-            goup_lamp = lamp_object.device_name
+            group_lamp = lamp_object.device_name
 
             client.publish(
-                HA_DISCOVERY_PREFIX.format(ha_prefix, goup_lamp),
+                HA_DISCOVERY_PREFIX.format(ha_prefix, group_lamp),
                 lamp_object.gen_ha_config(mqtt_base_topic),
                 retain=True,
             )
             client.publish(
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, goup_lamp),
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
                 actual_level.value,
                 retain=True,
             )
 
             client.publish(
-                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, goup_lamp),
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, group_lamp),
                 max_level.value,
                 retain=True,
             )
             client.publish(
-                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, goup_lamp),
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, group_lamp),
                 min_level.value,
                 retain=True,
             )
             client.publish(
                 MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
-                    mqtt_base_topic, goup_lamp
+                    mqtt_base_topic, group_lamp
                 ),
                 physical_minimum.value,
                 retain=True,
             )
             client.publish(
-                MQTT_STATE_TOPIC.format(mqtt_base_topic, goup_lamp),
+                MQTT_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
                 retain=True,
             )
@@ -277,7 +278,7 @@ def initialize_lamps(data_object, client):
             )
 
         except DALIError as err:
-            logger.error("Error while initializing group <%s>: %s", goup_lamp, err)
+            logger.error("Error while initializing group <%s>: %s", group_lamp, err)
 
 
     if devices_names_config.is_devices_file_empty():
