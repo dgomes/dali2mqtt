@@ -204,7 +204,7 @@ def initialize_lamps(data_object, client):
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
-    for group in groups.keys():
+    for group in groups:
         logger.debug("Publishing group %d", group)
         try:
             logger.debug("Group %s" % group)
