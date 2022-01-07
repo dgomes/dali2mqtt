@@ -216,7 +216,7 @@ def initialize_lamps(data_object, client):
             )
             min_level = driver_object.send(gear.QueryMinLevel(group_address))
             max_level = driver_object.send(gear.QueryMaxLevel(group_address))
-            device_name = 'group_%s' % group
+            device_name = f"group_{group}"
             lamp = device_name
             logger.debug("Group Name: %s" % lamp)
 
