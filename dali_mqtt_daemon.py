@@ -380,7 +380,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT brightness get command message."""
     logger.debug("Brightness Get Command on %s: %s", msg.topic, msg.payload)
     light = re.search(
-        MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
+        MQTT_BRIGHTNESS_GET_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
         msg.topic,
     ).group(1)
     try:
@@ -396,17 +396,27 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
           
         level = None
         try:
-            lamp_object.level = level
-
             level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
-            level = int(level)
+
+            logger.debug("Get light <%s> results in %d", light, level.value)
 
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-                level,
+                level.value,
                 retain=False,
             )
-            logger.debug("Get light <%s> results in %i", light, level)
+            if level.value == 0:
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_OFF,
+                    retain=True,
+                )
+            else:
+                mqtt_client.publish(
+                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                    MQTT_PAYLOAD_ON,
+                    retain=True,
+                )
 
         except ValueError as err:
             logger.error(
@@ -438,6 +448,7 @@ def on_connect(
         [
             (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
             (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
+            (MQTT_BRIGHTNESS_GET_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
             (MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic), 0),
         ]
     )
@@ -485,12 +496,12 @@ def create_mqtt_client(
         on_message_brightness_cmd,
     )
     mqttc.message_callback_add(
-        MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
-        on_message_reinitialize_lamps_cmd,
-    )
-    mqttc.message_callback_add(
         MQTT_BRIGHTNESS_GET_COMMAND_TOPIC.format(mqtt_base_topic, "+"),
         on_message_brightness_get_cmd,
+    )
+    mqttc.message_callback_add(
+        MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
+        on_message_reinitialize_lamps_cmd,
     )
 
     mqttc.on_message = on_message
