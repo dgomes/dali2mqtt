@@ -49,6 +49,7 @@ from consts import (
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_STATE_TOPIC,
     MQTT_SCAN_LAMPS_COMMAND_TOPIC,
+    MQTT_BRIGHTNESS_GET_COMMAND_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_DALI2MQTT_STATUS,
     MQTT_NOT_AVAILABLE,
@@ -375,6 +376,48 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
     except KeyError:
         logger.error("Lamp %s doesn't exists", light)
 
+def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT brightness get command message."""
+    logger.debug("Brightness Get Command on %s: %s", msg.topic, msg.payload)
+    light = re.search(
+        MQTT_BRIGHTNESS_COMMAND_TOPIC.format(data_object["base_topic"], "(.+?)"),
+        msg.topic,
+    ).group(1)
+    try:
+        if 'group_' in light:
+          """ Check if the comand is for a dali group """
+          group = int(re.search('group_(\d+)', light).group(1))
+          lamp_object=data_object["all_lamps"][group]
+        else:
+          """ The command is for a single lamp """
+          if light not in data_object["all_lamps"]:
+              raise KeyError
+          lamp_object = data_object["all_lamps"][light]
+          
+        level = None
+        try:
+            lamp_object.level = level
+
+            level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
+            level = int(level)
+
+            mqtt_client.publish(
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
+                level,
+                retain=False,
+            )
+            logger.debug("Get light <%s> results in %i", light, level)
+
+        except ValueError as err:
+            logger.error(
+                "Can't convert <%s> to integer %d..%d: %s",
+                str(level),
+                lamp_object.min_level,
+                lamp_object.max_level,
+                err,
+            )
+    except KeyError:
+        logger.error("Lamp %s doesn't exists", light)
 
 def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
@@ -445,6 +488,11 @@ def create_mqtt_client(
         MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
         on_message_reinitialize_lamps_cmd,
     )
+    mqttc.message_callback_add(
+        MQTT_BRIGHTNESS_GET_COMMAND_TOPIC.format(mqtt_base_topic, "+"),
+        on_message_brightness_get_cmd,
+    )
+
     mqttc.on_message = on_message
     if mqtt_username:
         mqttc.username_pw_set(mqtt_username, mqtt_password)
