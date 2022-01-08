@@ -406,17 +406,15 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
                 retain=False,
             )
             if level.value == 0:
-                mqtt_client.publish(
-                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                    MQTT_PAYLOAD_OFF,
-                    retain=True,
-                )
+              lamp_state=MQTT_PAYLOAD_OFF
             else:
-                mqtt_client.publish(
-                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                    MQTT_PAYLOAD_ON,
-                    retain=True,
-                )
+              lamp_state=MQTT_PAYLOAD_ON
+                
+            mqtt_client.publish(
+                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                lamp_state,
+                retain=False,
+            )
 
         except ValueError as err:
             logger.error(
