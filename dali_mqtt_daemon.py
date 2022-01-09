@@ -355,7 +355,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
 
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON if level.value != 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if lamp_object.level != 0 else MQTT_PAYLOAD_OFF,
                 retain=False,
             )
             mqtt_client.publish(
