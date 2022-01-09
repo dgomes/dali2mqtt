@@ -330,7 +330,7 @@ def get_lamp_object(data_object,light):
         if light not in data_object["all_lamps"]:
             raise KeyError
         lamp_object = data_object["all_lamps"][light]
-    return(lamp_object)
+    return lamp_object
 
 
 def on_message_brightness_cmd(mqtt_client, data_object, msg):
