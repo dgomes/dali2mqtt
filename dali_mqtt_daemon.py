@@ -320,6 +320,18 @@ def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
     logger.debug("Reinitialize Command on %s", msg.topic)
     initialize_lamps(data_object, mqtt_client)
 
+def get_lamp_object(data_object,light):
+    if 'group_' in light:
+        """ Check if the comand is for a dali group """
+        group = int(re.search('group_(\d+)', light).group(1))
+        lamp_object=data_object["all_lamps"][group]
+    else:
+        """ The command is for a single lamp """
+        if light not in data_object["all_lamps"]:
+            raise KeyError
+        lamp_object = data_object["all_lamps"][light]
+    return(lamp_object)
+
 
 def on_message_brightness_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT brightness command message."""
@@ -329,15 +341,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         msg.topic,
     ).group(1)
     try:
-        if 'group_' in light:
-          """ Check if the comand is for a dali group """
-          group = int(re.search('group_(\d+)', light).group(1))
-          lamp_object=data_object["all_lamps"][group]
-        else:
-          """ The command is for a single lamp """
-          if light not in data_object["all_lamps"]:
-              raise KeyError
-          lamp_object = data_object["all_lamps"][light]
+        lamp_object = get_lamp_object(data_object, light)
           
         level = None
         try:
@@ -384,15 +388,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
         msg.topic,
     ).group(1)
     try:
-        if 'group_' in light:
-          """ Check if the comand is for a dali group """
-          group = int(re.search('group_(\d+)', light).group(1))
-          lamp_object=data_object["all_lamps"][group]
-        else:
-          """ The command is for a single lamp """
-          if light not in data_object["all_lamps"]:
-              raise KeyError
-          lamp_object = data_object["all_lamps"][light]
+        lamp_object = get_lamp_object(data_object, light)
           
         level = None
         try:
@@ -405,14 +401,10 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
                 level.value,
                 retain=False,
             )
-            if level.value == 0:
-              lamp_state=MQTT_PAYLOAD_OFF
-            else:
-              lamp_state=MQTT_PAYLOAD_ON
-                
+                            
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                lamp_state,
+                MQTT_PAYLOAD_ON if level.value != 0 else MQTT_PAYLOAD_OFF,
                 retain=False,
             )
 
