@@ -350,20 +350,14 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
             lamp_object.level = level
             if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
-                mqtt_client.publish(
-                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                    MQTT_PAYLOAD_OFF,
-                    retain=True,
-                )
                 data_object["driver"].send(gear.Off(lamp_object.short_address))
                 logger.debug("Set light <%s> to OFF", light)
 
-            else:
-                mqtt_client.publish(
-                    MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                    MQTT_PAYLOAD_ON,
-                    retain=True,
-                )
+            mqtt_client.publish(
+                MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
+                MQTT_PAYLOAD_ON if level.value != 0 else MQTT_PAYLOAD_OFF,
+                retain=False,
+            )
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
                 lamp_object.level,
