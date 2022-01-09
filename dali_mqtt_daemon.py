@@ -167,7 +167,7 @@ def initialize_lamps(data_object, client):
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 actual_level.value,
-                retain=True,
+                retain=False,
             )
 
             client.publish(
@@ -190,7 +190,7 @@ def initialize_lamps(data_object, client):
             client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
-                retain=True,
+                retain=False,
             )
             logger.info(
                 "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
@@ -243,7 +243,7 @@ def initialize_lamps(data_object, client):
             client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
                 actual_level.value,
-                retain=True,
+                retain=False,
             )
 
             client.publish(
@@ -266,7 +266,7 @@ def initialize_lamps(data_object, client):
             client.publish(
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
                 MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
-                retain=True,
+                retain=False,
             )
             logger.info(
                 "   - group address: %s, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
