@@ -92,8 +92,3 @@ class Lamp:
         logger.debug(
             "Set lamp <%s> brightness level to %s", self.friendly_name, self.level
         )
-
-    @level.getter
-    def level(self):
-        self.__level = self.driver.send(gear.QueryActualLevel(self.short_address)).value
-        logger.debug("Get light <%s> results in %d", self.friendly_name, self.level)

@@ -133,7 +133,7 @@ def initialize_lamps(data_object, client):
         "Found %d lamps",
         len(lamps),
     )
-    groups = scan_groups(driver_object, lamps)
+    
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
@@ -205,6 +205,7 @@ def initialize_lamps(data_object, client):
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
 
+    groups = scan_groups(driver_object, lamps)
     for group in groups:
         logger.debug("Publishing group %d", group)
         try:
@@ -386,9 +387,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
           
         level = None
         try:
-            #level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
-            level = lamp_object.level
-
+            level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
             logger.debug("Get light <%s> results in %d", light, level.value)
 
             mqtt_client.publish(
