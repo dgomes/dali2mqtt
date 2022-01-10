@@ -385,7 +385,6 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
     try:
         lamp_object = get_lamp_object(data_object, light)
           
-        level = None
         try:
             level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
             logger.debug("Get light <%s> results in %d", light, level.value)
