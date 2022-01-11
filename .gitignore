@@ -1,3 +1,7 @@
+# App config files
+config.yaml
+devices.yaml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
