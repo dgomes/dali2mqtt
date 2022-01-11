@@ -42,8 +42,8 @@ CONF_SCHEMA = vol.Schema(
         vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=65535)
         ),
-        vol.Required(CONF_MQTT_USERNAME, default=DEFAULT_MQTT_USERNAME): str,
-        vol.Required(CONF_MQTT_PASSWORD, default=DEFAULT_MQTT_PASSWORD): str,
+        vol.Optional(CONF_MQTT_USERNAME, default=DEFAULT_MQTT_USERNAME): str,
+        vol.Optional(CONF_MQTT_PASSWORD, default=DEFAULT_MQTT_PASSWORD): str,
         vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
 
         vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(
