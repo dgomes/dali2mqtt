@@ -495,7 +495,7 @@ def create_mqtt_client(
     )
 
     mqttc.on_message = on_message
-    if mqtt_username:
+    if mqtt_username != '':
         mqttc.username_pw_set(mqtt_username, mqtt_password)
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
