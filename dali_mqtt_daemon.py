@@ -237,7 +237,6 @@ def initialize_lamps(data_object, client):
                 actual_level.value,
                 max_level.value,
             )
-
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
             group_lamp = lamp_object.device_name
 
@@ -591,6 +590,11 @@ if __name__ == "__main__":
         f"--{CONF_DALI_DRIVER.replace('_','-')}",
         help="DALI device driver",
         choices=DALI_DRIVERS,
+    )
+    parser.add_argument(
+        f"--{CONF_DALI_LAMPS.replace('_','-')}",
+        help="Number of lamps to scan",
+        type=int,
     )
     parser.add_argument(
         f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
