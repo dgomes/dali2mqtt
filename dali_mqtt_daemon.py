@@ -5,7 +5,6 @@ import argparse
 import io
 import logging
 import re
-
 import yaml
 import random
 import time
@@ -237,6 +236,7 @@ def initialize_lamps(data_object, client):
                 actual_level.value,
                 max_level.value,
             )
+
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
             group_lamp = lamp_object.device_name
 
