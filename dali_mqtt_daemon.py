@@ -5,6 +5,8 @@ import argparse
 import io
 import logging
 import re
+from pprint import pprint
+
 import yaml
 import random
 import time
@@ -72,16 +74,19 @@ from consts import (
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
-def dali_scan(driver):
+def dali_scan(driver, max_lamps):
     """Scan a maximum number of dali devices."""
     lamps = []
-    for lamp in range(0, 63):
+    for lamp in range(0, 64):
         try:
             logger.debug("Search for Lamp %s", lamp)
             present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
             if isinstance(present, YesNoResponse) and present.value:
                 lamps.append(lamp)
                 logger.debug("Found lamp at address %d", lamp)
+                if len(lamps) >= max_lamps:
+                    logger.info("Found configured amounts of lamps.")
+                    return lamps
         except DALIError as err:
             logger.warning("%s not present: %s", lamp, err)
     return lamps
@@ -128,7 +133,7 @@ def initialize_lamps(data_object, client):
     log_level = data_object["log_level"]
     devices_names_config = data_object["devices_names_config"]
     devices_names_config.load_devices_names_file()
-    lamps = dali_scan(driver_object)
+    lamps = dali_scan(driver_object, data_object["dali_lamps"])
     logger.info(
         "Found %d lamps",
         len(lamps),
@@ -451,6 +456,7 @@ def create_mqtt_client(
     devices_names_config,
     ha_prefix,
     log_level,
+    dali_lamps,
 ):
     """Create MQTT client object, setup callbacks and connection to server."""
     logger.debug("Connecting to %s:%s", mqtt_server, mqtt_port)
@@ -463,6 +469,7 @@ def create_mqtt_client(
             "devices_names_config": devices_names_config,
             "log_level": log_level,
             "all_lamps": {},
+            "dali_lamps": dali_lamps,
         },
     )
     mqttc.will_set(
@@ -550,6 +557,7 @@ def main(args):
             devices_names_config,
             config.ha_discovery_prefix,
             config.log_level,
+            config.dali_lamps
         )
         mqttc.loop_forever()
         if should_backoff:

@@ -32,25 +32,26 @@ Then just edit the file accordingly. You can also create the file with the right
 
 ```
   --config CONFIG       configuration file
+  --devices-names DEVICES_NAMES
+                        devices names file
   --mqtt-server MQTT_SERVER
                         MQTT server
   --mqtt-port MQTT_PORT
                         MQTT port
   --mqtt-username MQTT_USERNAME
-                        MQTT user name
+                        MQTT username
   --mqtt-password MQTT_PASSWORD
                         MQTT password
   --mqtt-base-topic MQTT_BASE_TOPIC
                         MQTT base topic
   --dali-driver {hasseb,tridonic,dali_server}
                         DALI device driver
-  --dali-lamps DALI_LAMPS
-                        Number of lamps to scan
-  --ha-discover-prefix HA_DISCOVER_PREFIX
-                        HA discover mqtt prefix
-  --log-level {critical,error,warning,info,debug}  
-                        Log level  
-  --log-color Coloring output
+  --ha-discovery-prefix HA_DISCOVERY_PREFIX
+                        HA discovery mqtt prefix
+  --log-level {critical,error,warning,info,debug}
+                        Log level
+  --log-color           Coloring output
+
 ```
 
 ### Devices friendly names

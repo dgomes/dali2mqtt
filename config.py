@@ -9,12 +9,15 @@ from consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_PORT,
     DEFAULT_MQTT_SERVER,
+    DEFAULT_MQTT_USERNAME,
+    DEFAULT_MQTT_PASSWORD,
     DEFAULT_HA_DISCOVERY_PREFIX,
     DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_DEVICES_NAMES_FILE,
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     DEFAULT_DALI_DRIVER,
+    DEFAULT_DALI_LAMPS,
     DALI_DRIVERS,
     ALL_SUPPORTED_LOG_LEVELS,
     LOG_FORMAT,
@@ -39,9 +42,15 @@ CONF_SCHEMA = vol.Schema(
         vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=65535)
         ),
+        vol.Required(CONF_MQTT_USERNAME, default=DEFAULT_MQTT_USERNAME): str,
+        vol.Required(CONF_MQTT_PASSWORD, default=DEFAULT_MQTT_PASSWORD): str,
         vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
+
         vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(
             DALI_DRIVERS
+        ),
+        vol.Optional(CONF_DALI_LAMPS, default=DEFAULT_DALI_LAMPS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=64)
         ),
         vol.Optional(
             CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX
@@ -137,14 +146,18 @@ class Config:
         return (
             self._config[CONF_MQTT_SERVER],
             self._config[CONF_MQTT_PORT],
-            self._config[CONF_MQTT_USERNAME],
-            self._config[CONF_MQTT_PASSWORD],
+            self._config.get(CONF_MQTT_USERNAME, DEFAULT_MQTT_USERNAME),
+            self._config.get(CONF_MQTT_PASSWORD, DEFAULT_MQTT_PASSWORD),
             self._config[CONF_MQTT_BASE_TOPIC],
         )
 
     @property
     def dali_driver(self):
         return self._config[CONF_DALI_DRIVER]
+
+    @property
+    def dali_lamps(self):
+        return self._config[CONF_DALI_LAMPS]
 
     @property
     def ha_discovery_prefix(self):
