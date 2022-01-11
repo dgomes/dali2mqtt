@@ -5,7 +5,6 @@ import argparse
 import io
 import logging
 import re
-from pprint import pprint
 
 import yaml
 import random
