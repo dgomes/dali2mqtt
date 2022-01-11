@@ -77,7 +77,7 @@ def dali_scan(driver):
     lamps = []
     for lamp in range(0, 63):
         try:
-            logging.debug("Search for Lamp %s", lamp)
+            logger.debug("Search for Lamp %s", lamp)
             present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
             if isinstance(present, YesNoResponse) and present.value:
                 lamps.append(lamp)
@@ -91,7 +91,7 @@ def scan_groups(dali_driver, lamps):
     groups = {}
     for lamp in lamps:
         try:
-            logging.debug("Search for groups for Lamp {}".format(lamp))
+            logger.debug("Search for groups for Lamp {}".format(lamp))
             group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
             group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
 
@@ -102,7 +102,7 @@ def scan_groups(dali_driver, lamps):
 
             for i in range(8):
                 checkgroup = 1<<i
-                logging.debug("Check pattern: %d", checkgroup)
+                logger.debug("Check pattern: %d", checkgroup)
                 if (group1 & checkgroup) == checkgroup:
                     if not i in groups:
                       groups[i]=[]
