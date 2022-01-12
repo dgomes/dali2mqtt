@@ -83,7 +83,7 @@ def dali_scan(driver, max_lamps):
                 lamps.append(lamp)
                 logger.debug("Found lamp at address %d", lamp)
                 if len(lamps) >= max_lamps:
-                    logger.info("Stopping scan. Found configured amounts of lamps.")
+                    logger.warning("All %s configured lamps have been found, Stopping scan",  max_lamps)
                     return lamps
         except DALIError as err:
             logger.warning("%s not present: %s", lamp, err)
