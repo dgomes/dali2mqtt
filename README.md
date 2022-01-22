@@ -1,6 +1,7 @@
 
 # dali2mqtt
 DALI <-> MQTT bridge
+## This is a fork of [dali2mqtt](https://github.com/dgomes/dali2mqtt).
 
 ## About
 
@@ -25,7 +26,7 @@ pip install -r requirements.txt
 You can create a configuration file when you call the daemon the first time
 
 ```bash
-venv/bin/python3 ./dali_mqtt_daemon.py
+venv/bin/python3 ./main.py
 ```
 
 Then just edit the file accordingly. You can also create the file with the right values, by using the arguments of dali_mqtt_daemon.py:
