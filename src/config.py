@@ -5,36 +5,7 @@ import voluptuous as vol
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver as Observer
 
-from consts import (
-    DEFAULT_CONFIG_FILE,
-    DEFAULT_MQTT_PORT,
-    DEFAULT_MQTT_SERVER,
-    DEFAULT_MQTT_USERNAME,
-    DEFAULT_MQTT_PASSWORD,
-    DEFAULT_HA_DISCOVERY_PREFIX,
-    DEFAULT_MQTT_BASE_TOPIC,
-    DEFAULT_DEVICES_NAMES_FILE,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOG_COLOR,
-    DEFAULT_DALI_DRIVER,
-    DEFAULT_DALI_LAMPS,
-    DALI_DRIVERS,
-    ALL_SUPPORTED_LOG_LEVELS,
-    LOG_FORMAT,
-    CONF_CONFIG,
-    CONF_DALI_DRIVER,
-    CONF_DALI_LAMPS,
-    CONF_LOG_COLOR,
-    CONF_LOG_LEVEL,
-    CONF_HA_DISCOVERY_PREFIX,
-    CONF_DEVICES_NAMES_FILE,
-    CONF_MQTT_BASE_TOPIC,
-    CONF_MQTT_PORT,
-    CONF_MQTT_SERVER,
-    CONF_MQTT_USERNAME,
-    CONF_MQTT_PASSWORD,
-)
-
+from .consts import *
 
 CONF_SCHEMA = vol.Schema(
     {
@@ -68,8 +39,24 @@ logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
+
+
 class Config:
-    def __init__(self, args, callback=None):
+    _instance = None
+    _done_setup = False
+    _watchdog_observer = None
+    _config = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(Config, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
+
+
+    def setup(self, args, callback=None):
+        self._done_setup = True
         self._watchdog_observer = None
         self._path = args.config
         self._callback = callback
@@ -96,8 +83,13 @@ class Config:
         self._watchdog_observer.schedule(watchdog_event_handler, self._path)
         self._watchdog_observer.start()
 
+    def _did_setup(self):
+        if not self._done_setup:
+            raise SetupError("Class was not setup properly.")
+
     def load_config_file(self):
         """Load configuration from yaml file."""
+        self._did_setup()
         with open(self._path, "r") as infile:
             logger.debug("Loading configuration from <%s>", self._path)
             try:
@@ -119,6 +111,7 @@ class Config:
 
     def save_config_file(self):
         """Save configuration back to yaml file."""
+        self._did_setup()
         try:
             with open(self._path, "w", encoding="utf8") as outfile:
                 cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
@@ -139,10 +132,23 @@ class Config:
             self.save_config_file()
 
     def __repr__(self):
+        self._did_setup()
         return self._config
+
+    def __getitem__(self, item):
+        self._did_setup()
+        if item not in self._config:
+            raise IndexError(f"Value {item} not in config")
+        else:
+            return self._config[item]
+
+    def __contains__(self, item):
+        self._did_setup()
+        return item not in self._config
 
     @property
     def mqtt_conf(self):
+        self._did_setup()
         return (
             self._config[CONF_MQTT_SERVER],
             self._config[CONF_MQTT_PORT],
@@ -151,26 +157,3 @@ class Config:
             self._config[CONF_MQTT_BASE_TOPIC],
         )
 
-    @property
-    def dali_driver(self):
-        return self._config[CONF_DALI_DRIVER]
-
-    @property
-    def dali_lamps(self):
-        return self._config[CONF_DALI_LAMPS]
-
-    @property
-    def ha_discovery_prefix(self):
-        return self._config[CONF_HA_DISCOVERY_PREFIX]
-
-    @property
-    def log_level(self):
-        return self._config[CONF_LOG_LEVEL]
-
-    @property
-    def log_color(self):
-        return self._config[CONF_LOG_COLOR]
-
-    @property
-    def devices_names_file(self):
-        return self._config[CONF_DEVICES_NAMES_FILE]

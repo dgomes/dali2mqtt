@@ -1,9 +1,8 @@
 import logging
 
 """Constants common the various modules."""
-__author__ = "Diogo Gomes"
-__version__ = "0.0.1"
-__email__ = "diogogomes@gmail.com"
+AUTHOR = "Diogo Gomes & TobsA"
+VERSION = "0.1.0"
 
 HASSEB = "hasseb"
 TRIDONIC = "tridonic"
@@ -37,21 +36,17 @@ DEFAULT_LOG_LEVEL = "info"
 DEFAULT_LOG_COLOR = False
 
 MQTT_DALI2MQTT_STATUS = "{}/status"
-MQTT_STATE_TOPIC = "{}/{}/light/status"
-MQTT_COMMAND_TOPIC = "{}/{}/light/switch"
-MQTT_BRIGHTNESS_STATE_TOPIC = "{}/{}/light/brightness/status"
-MQTT_BRIGHTNESS_COMMAND_TOPIC = "{}/{}/light/brightness/set"
-MQTT_BRIGHTNESS_GET_COMMAND_TOPIC = "{}/{}/light/brightness/get"
-MQTT_SCAN_LAMPS_COMMAND_TOPIC = "{}/find"
-MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC = "{}/{}/max_level"
-MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC = "{}/{}/min_level"
-MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC = "{}/{}/physical_minimum"
+MQTT_STATE_TOPIC = "{}/{}/status"
+MQTT_COMMAND_TOPIC = "{}/{}/set"
+MQTT_BRIGHTNESS_STATE_TOPIC = "{}/{}/brightness/status"
+MQTT_BRIGHTNESS_COMMAND_TOPIC = "{}/{}/brightness/set"
+MQTT_SCAN_LAMPS_COMMAND_TOPIC = "{}/scan"
 MQTT_PAYLOAD_ON = b"ON"
 MQTT_PAYLOAD_OFF = b"OFF"
 MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
-HA_DISCOVERY_PREFIX = "{}/light/{}/config"
+HA_DISCOVERY_PREFIX = "{}/light/{}/{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2
@@ -65,8 +60,11 @@ ALL_SUPPORTED_LOG_LEVELS = {
     "debug": logging.DEBUG,
 }
 
-
 RESET_COLOR = "\x1b[0m"
 RED_COLOR = "\x1b[31;21m"
 YELLOW_COLOR = "\x1b[33;21m"
 LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+
+
+class SetupError(Exception):
+    pass
