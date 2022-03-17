@@ -58,10 +58,10 @@ class DevicesNamesConfig:
     def is_devices_file_empty(self):
         return len(self._devices_names) == 0
 
-    def get_friendly_name(self, short_address_value):
+    def get_friendly_name(self, short_address_value) -> str:
         friendly_name = None
         try:
             friendly_name = self._devices_names[short_address_value]["friendly_name"]
         except KeyError:
-            friendly_name = short_address_value
+            friendly_name = f"{short_address_value}"
         return friendly_name
