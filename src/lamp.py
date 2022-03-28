@@ -43,12 +43,12 @@ class Lamp:
         self.mqtt.publish(
             MQTT_BRIGHTNESS_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
             self.level,
-            retain=False,
+            retain=True,
         )
         self.mqtt.publish(
             MQTT_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
             MQTT_PAYLOAD_ON if self.level > 0 else MQTT_PAYLOAD_OFF,
-            retain=False,
+            retain=True,
         )
         logger.info(
             "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
@@ -113,13 +113,13 @@ class Lamp:
         self.mqtt.publish(
             MQTT_BRIGHTNESS_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
             self.level,
-            retain=False,
+            retain=True,
         )
         if old == 0 or level == 0:
             self.mqtt.publish(
                 MQTT_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
                 MQTT_PAYLOAD_ON if self.level > 0 else MQTT_PAYLOAD_OFF,
-                retain=False,
+                retain=True,
             )
 
     def _sendLevelDALI(self, level):
