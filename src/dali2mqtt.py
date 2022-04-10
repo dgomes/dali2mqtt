@@ -3,9 +3,6 @@
 
 import re
 import traceback
-from pprint import pprint
-import random
-import time
 
 import paho.mqtt.client as mqtt
 import dali.address as address
@@ -50,9 +47,6 @@ def scan_groups(dali_driver, lamps):
             logger.debug("Search for groups for Lamp {}".format(lamp))
             group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
             group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
-
-#            logger.debug("Group 0-7: %d", group1)
-#            logger.debug("Group 8-15: %d", group2)
 
             lamp_groups = []
 
@@ -270,11 +264,6 @@ def create_mqtt_client(driver_object):
 
     mqttc.connect(config[CONF_MQTT_SERVER], config[CONF_MQTT_PORT], 60)
     return mqttc
-
-
-def delay():
-    return MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
-
 
 def main(args):
     config = Config()
