@@ -317,14 +317,5 @@ def main(args):
 
         dali_driver = DaliServer("localhost", 55825)
 
-    should_backoff = True
-    retries = 0
-    run = True
-    while run:
-        mqttc = create_mqtt_client(dali_driver)
-        mqttc.loop_forever()
-        if should_backoff:
-            if retries == MAX_RETRIES:
-                run = False
-            time.sleep(delay())
-            retries += 1  # TODO reset on successful connection
+    mqttc = create_mqtt_client(dali_driver)
+    mqttc.loop_forever()
