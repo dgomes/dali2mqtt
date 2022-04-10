@@ -112,6 +112,11 @@ def initialize_lamps(data_object, client):
     devices_names_config = DevicesNamesConfig()
     if devices_names_config.is_devices_file_empty():
         devices_names_config.save_devices_names_file(list(data_object["all_lamps"].values()) + list(data_object["all_groups"].values()))
+
+    config = Config()
+    client.publish(
+        MQTT_DALI2MQTT_STATUS.format(config[CONF_MQTT_BASE_TOPIC]), MQTT_AVAILABLE, retain=True
+    )
     logger.info("initialize_lamps finished")
 
 def on_message_cmd(mqtt_client, data_object, msg):
@@ -143,6 +148,10 @@ def on_message_cmd(mqtt_client, data_object, msg):
 def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT scan lamps command message"""
     logger.debug("Reinitialize Command on %s", msg.topic)
+    config = Config()
+    mqtt_client.publish(
+        MQTT_DALI2MQTT_STATUS.format(config[CONF_MQTT_BASE_TOPIC]), MQTT_NOT_AVAILABLE, retain=True
+    )
     initialize_lamps(data_object, mqtt_client)
 
 def on_message_poll_lamps_cmd(mqtt_client, data_object, msg):
@@ -214,7 +223,7 @@ def on_connect(client, data_object, flags, result):  # pylint: disable=W0613,R09
         ]
     )
     client.publish(
-        MQTT_DALI2MQTT_STATUS.format(config[CONF_MQTT_BASE_TOPIC]), MQTT_AVAILABLE, retain=True
+        MQTT_DALI2MQTT_STATUS.format(config[CONF_MQTT_BASE_TOPIC]), MQTT_NOT_AVAILABLE, retain=True
     )
     initialize_lamps(data_object, client)
 
