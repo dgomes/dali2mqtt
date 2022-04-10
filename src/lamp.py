@@ -122,6 +122,21 @@ class Lamp:
                 retain=True,
             )
 
+    def pollLevel(self):
+        old = self.level
+        self._getLevelDALI()
+        if old != self.level:
+            self.mqtt.publish(
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
+                self.level,
+                retain=True,
+            )
+            self.mqtt.publish(
+                MQTT_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
+                MQTT_PAYLOAD_ON if self.level > 0 else MQTT_PAYLOAD_OFF,
+                retain=True,
+            )
+
     def _sendLevelDALI(self, level):
         level = denormalize(level, 0, 255, self.min_levels, self.max_level)
         self.driver.send(gear.DAPC(self.dali_lamp, level))

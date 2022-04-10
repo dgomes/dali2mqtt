@@ -152,6 +152,14 @@ def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
     logger.debug("Reinitialize Command on %s", msg.topic)
     initialize_lamps(data_object, mqtt_client)
 
+def on_message_poll_lamps_cmd(mqtt_client, data_object, msg):
+    """Callback on MQTT poll lamps command message"""
+    logger.info("Poll lamps command on %s", msg.topic)
+    for _x in data_object["all_lamps"].values():
+        _x.pollLevel()
+    for _x in data_object["all_groups"].values():
+        _x.recalc_level()
+
 def get_lamp_object(data_object,light):
     if 'group_' in light:
         """ Check if the comand is for a dali group """
@@ -209,6 +217,7 @@ def on_connect(client, data_object, flags, result):  # pylint: disable=W0613,R09
             (MQTT_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC], "+"), 0),
             (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC], "+"), 0),
             (MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC]), 0),
+            (MQTT_POLL_LAMPS_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC]), 0),
         ]
     )
     client.publish(
@@ -246,6 +255,10 @@ def create_mqtt_client(driver_object):
     mqttc.message_callback_add(
         MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC]),
         on_message_reinitialize_lamps_cmd,
+    )
+    mqttc.message_callback_add(
+        MQTT_POLL_LAMPS_COMMAND_TOPIC.format(config[CONF_MQTT_BASE_TOPIC]),
+        on_message_poll_lamps_cmd,
     )
 
     mqttc.on_message = on_message
