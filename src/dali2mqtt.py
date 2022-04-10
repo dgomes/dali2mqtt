@@ -114,13 +114,6 @@ def initialize_lamps(data_object, client):
         devices_names_config.save_devices_names_file(list(data_object["all_lamps"].values()) + list(data_object["all_groups"].values()))
     logger.info("initialize_lamps finished")
 
-
-def on_detect_changes_in_config(mqtt_client):
-    """Callback when changes are detected in the configuration file."""
-    logger.info("Reconnecting to server")
-    mqtt_client.disconnect()
-
-
 def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
     logger.debug("Command on %s: %s", msg.topic, msg.payload)
