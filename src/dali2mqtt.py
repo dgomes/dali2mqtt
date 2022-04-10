@@ -275,9 +275,8 @@ def delay():
 
 
 def main(args):
-    mqttc = None
     config = Config()
-    config.setup(args, lambda: on_detect_changes_in_config(mqttc))
+    config.setup(args)
 
     if config[CONF_LOG_COLOR]:
         logging.addLevelName(

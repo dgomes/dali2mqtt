@@ -2,9 +2,6 @@
 import logging
 import yaml
 import voluptuous as vol
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers.polling import PollingObserver as Observer
-
 from .consts import *
 
 CONF_SCHEMA = vol.Schema(
@@ -38,13 +35,9 @@ CONF_SCHEMA = vol.Schema(
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
-
-
-
 class Config:
     _instance = None
     _done_setup = False
-    _watchdog_observer = None
     _config = None
 
     def __new__(cls):
@@ -55,11 +48,9 @@ class Config:
         return cls._instance
 
 
-    def setup(self, args, callback=None):
+    def setup(self, args):
         self._done_setup = True
-        self._watchdog_observer = None
         self._path = args.config
-        self._callback = callback
         self._config = {}
 
         # Load from file
@@ -76,12 +67,6 @@ class Config:
                 self._config[key] = args_keys[key]
 
         self.save_config_file()
-
-        self._watchdog_observer = Observer()
-        watchdog_event_handler = FileSystemEventHandler()
-        watchdog_event_handler.on_modified = lambda event: self.load_config_file()
-        self._watchdog_observer.schedule(watchdog_event_handler, self._path)
-        self._watchdog_observer.start()
 
     def _did_setup(self):
         if not self._done_setup:
@@ -101,7 +86,6 @@ class Config:
                     )
                     configuration = {}
                 self._config = CONF_SCHEMA(configuration)
-                self._callback()
             except AttributeError:
                 # No callback configured
                 pass
@@ -124,10 +108,6 @@ class Config:
             self._config[CONF_CONFIG] = cfg  # restore
 
     def __del__(self):
-        """Release watchdog."""
-        if self._watchdog_observer:
-            self._watchdog_observer.stop()
-            self._watchdog_observer.join()
         if self._config != {}:
             self.save_config_file()
 
