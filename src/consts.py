@@ -1,15 +1,18 @@
 import logging
+import voluptuous as vol
 
 """Constants common the various modules."""
 AUTHOR = "Diogo Gomes & TobsA"
 VERSION = "0.1.0"
 
 HASSEB = "hasseb"
+MIN_HASSEB_FIRMWARE_VERSION = 2.3
 TRIDONIC = "tridonic"
 DALI_SERVER = "dali_server"
 DALI_DRIVERS = [HASSEB, TRIDONIC, DALI_SERVER, "dummy"]
 
 CONF_CONFIG = "config"
+CONF_CONFIG_EXAMPLE = "config_example"
 CONF_DEVICES_NAMES_FILE = "devices_names"
 CONF_MQTT_SERVER = "mqtt_server"
 CONF_MQTT_PORT = "mqtt_port"
@@ -35,6 +38,47 @@ DEFAULT_HA_DISCOVERY_PREFIX = "homeassistant"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_LOG_COLOR = False
 
+ALL_SUPPORTED_LOG_LEVELS = {
+    "critical": logging.CRITICAL,
+    "error": logging.ERROR,
+    "warning": logging.WARNING,
+    "info": logging.INFO,
+    "debug": logging.DEBUG,
+}
+
+RESET_COLOR = "\x1b[0m"
+RED_COLOR = "\x1b[31;21m"
+YELLOW_COLOR = "\x1b[33;21m"
+LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
+
+CONF_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_MQTT_SERVER, default=DEFAULT_MQTT_SERVER): str,
+        vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=65535)
+        ),
+        vol.Optional(CONF_MQTT_USERNAME, default=DEFAULT_MQTT_USERNAME): str,
+        vol.Optional(CONF_MQTT_PASSWORD, default=DEFAULT_MQTT_PASSWORD): str,
+        vol.Optional(CONF_MQTT_BASE_TOPIC, default=DEFAULT_MQTT_BASE_TOPIC): str,
+
+        vol.Required(CONF_DALI_DRIVER, default=DEFAULT_DALI_DRIVER): vol.In(
+            DALI_DRIVERS
+        ),
+        vol.Optional(CONF_DALI_LAMPS, default=DEFAULT_DALI_LAMPS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=64)
+        ),
+        vol.Optional(
+            CONF_HA_DISCOVERY_PREFIX, default=DEFAULT_HA_DISCOVERY_PREFIX
+        ): str,
+        vol.Optional(CONF_DEVICES_NAMES_FILE, default=DEFAULT_DEVICES_NAMES_FILE): str,
+        vol.Optional(CONF_LOG_LEVEL, default=DEFAULT_LOG_LEVEL): vol.In(
+            ALL_SUPPORTED_LOG_LEVELS
+        ),
+        vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
+    },
+    extra=False,
+)
+
 MQTT_DALI2MQTT_STATUS = "{}/status"
 MQTT_STATE_TOPIC = "{}/{}/status"
 MQTT_COMMAND_TOPIC = "{}/{}/set"
@@ -48,23 +92,6 @@ MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
 HA_DISCOVERY_PREFIX = "{}/light/{}/{}/config"
-
-MIN_HASSEB_FIRMWARE_VERSION = 2.3
-MIN_BACKOFF_TIME = 2
-MAX_RETRIES = 10
-
-ALL_SUPPORTED_LOG_LEVELS = {
-    "critical": logging.CRITICAL,
-    "error": logging.ERROR,
-    "warning": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG,
-}
-
-RESET_COLOR = "\x1b[0m"
-RED_COLOR = "\x1b[31;21m"
-YELLOW_COLOR = "\x1b[33;21m"
-LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s{}".format(RESET_COLOR)
 
 
 class SetupError(Exception):
