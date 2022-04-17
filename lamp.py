@@ -46,7 +46,6 @@ class Lamp:
         self.max_level = max_level
         self.level = level
         logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
-        pass
 
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
