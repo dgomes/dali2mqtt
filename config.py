@@ -137,8 +137,8 @@ class Config:
         return (
             self._config[CONF_MQTT_SERVER],
             self._config[CONF_MQTT_PORT],
-            self._config[CONF_MQTT_USERNAME],
-            self._config[CONF_MQTT_PASSWORD],
+            self._config.get(CONF_MQTT_USERNAME),
+            self._config.get(CONF_MQTT_PASSWORD),
             self._config[CONF_MQTT_BASE_TOPIC],
         )
 
