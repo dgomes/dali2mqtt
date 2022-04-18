@@ -14,6 +14,16 @@ This daemon relies in [python-dali](https://github.com/sde1000/python-dali) so a
 
 ## How to use
 
+#### Install Operating System Dependencies
+
+#### Ubuntu/Debian/Raspian
+
+This is actually a python dependency, but will pull libhdiapi as a dependency
+
+```bash
+sudo apt-get install python3-hid
+```
+
 ### Create a Virtual Environment (recommended) and install the requirements
 ```bash
 python3 -m venv venv
