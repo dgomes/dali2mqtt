@@ -1,6 +1,6 @@
 hidapi==0.11.2
 paho-mqtt==1.6.1
-python-dali
+python-dali==0.9
 python-slugify==6.1.1
 pyusb==1.2.1
 PyYAML==6.0
