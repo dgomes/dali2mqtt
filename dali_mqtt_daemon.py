@@ -2,75 +2,65 @@
 """Bridge between a DALI controller and an MQTT bus."""
 
 import argparse
-import io
 import logging
-import re
-import yaml
 import random
+import re
 import time
 
-import paho.mqtt.client as mqtt
 import dali.address as address
 import dali.gear.general as gear
-from dali.command import YesNoResponse
-from dali.exceptions import DALIError
-
-from config import Config
-from lamp import Lamp
-from devicesnamesconfig import DevicesNamesConfig
-
+import paho.mqtt.client as mqtt
 from consts import (
-    DALI_DRIVERS,
-    DALI_SERVER,
-    DEFAULT_CONFIG_FILE,
-    DEFAULT_DEVICES_NAMES_FILE,
-    DEFAULT_MQTT_PORT,
-    DEFAULT_MQTT_SERVER,
-    DEFAULT_HA_DISCOVERY_PREFIX,
-    DEFAULT_MQTT_BASE_TOPIC,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOG_COLOR,
+    ALL_SUPPORTED_LOG_LEVELS,
     CONF_CONFIG,
-    CONF_DEVICES_NAMES_FILE,
     CONF_DALI_DRIVER,
-    CONF_DALI_LAMPS,
+    CONF_DEVICES_NAMES_FILE,
+    CONF_HA_DISCOVERY_PREFIX,
     CONF_LOG_COLOR,
     CONF_LOG_LEVEL,
-    CONF_HA_DISCOVERY_PREFIX,
     CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PASSWORD,
     CONF_MQTT_PORT,
     CONF_MQTT_SERVER,
     CONF_MQTT_USERNAME,
-    CONF_MQTT_PASSWORD,
+    DALI_DRIVERS,
+    DALI_SERVER,
+    DEFAULT_CONFIG_FILE,
+    DEFAULT_HA_DISCOVERY_PREFIX,
     HA_DISCOVERY_PREFIX,
     HASSEB,
+    LOG_FORMAT,
+    MAX_RETRIES,
+    MIN_BACKOFF_TIME,
     MIN_HASSEB_FIRMWARE_VERSION,
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
-    MQTT_BRIGHTNESS_STATE_TOPIC,
-    MQTT_SCAN_LAMPS_COMMAND_TOPIC,
     MQTT_BRIGHTNESS_GET_COMMAND_TOPIC,
+    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC,
+    MQTT_BRIGHTNESS_STATE_TOPIC,
     MQTT_COMMAND_TOPIC,
     MQTT_DALI2MQTT_STATUS,
     MQTT_NOT_AVAILABLE,
     MQTT_PAYLOAD_OFF,
     MQTT_PAYLOAD_ON,
+    MQTT_SCAN_LAMPS_COMMAND_TOPIC,
     MQTT_STATE_TOPIC,
-    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC,
-    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC,
-    MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC,
-    ALL_SUPPORTED_LOG_LEVELS,
-    TRIDONIC,
-    MIN_BACKOFF_TIME,
-    MAX_RETRIES,
-    RESET_COLOR,
     RED_COLOR,
+    TRIDONIC,
     YELLOW_COLOR,
-    LOG_FORMAT,
 )
+from dali.command import YesNoResponse
+from dali.exceptions import DALIError
+from devicesnamesconfig import DevicesNamesConfig
+from lamp import Lamp
+
+from config import Config
 
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
+
 
 def dali_scan(driver):
     """Scan a maximum number of dali devices."""
@@ -86,42 +76,51 @@ def dali_scan(driver):
             logger.warning("%s not present: %s", lamp, err)
     return lamps
 
+
 def scan_groups(dali_driver, lamps):
+    """Scan for groups."""
     logger.info("Scanning for groups")
     groups = {}
     for lamp in lamps:
         try:
             logging.debug("Search for groups for Lamp {}".format(lamp))
-            group1 = dali_driver.send(gear.QueryGroupsZeroToSeven(address.Short(lamp))).value.as_integer
-            group2 = dali_driver.send(gear.QueryGroupsEightToFifteen(address.Short(lamp))).value.as_integer
+            group1 = dali_driver.send(
+                gear.QueryGroupsZeroToSeven(address.Short(lamp))
+            ).value.as_integer
+            group2 = dali_driver.send(
+                gear.QueryGroupsEightToFifteen(address.Short(lamp))
+            ).value.as_integer
 
-#            logger.debug("Group 0-7: %d", group1)
-#            logger.debug("Group 8-15: %d", group2)
+            #            logger.debug("Group 0-7: %d", group1)
+            #            logger.debug("Group 8-15: %d", group2)
 
             lamp_groups = []
 
             for i in range(8):
-                checkgroup = 1<<i
+                checkgroup = 1 << i
                 logging.debug("Check pattern: %d", checkgroup)
                 if (group1 & checkgroup) == checkgroup:
-                    if not i in groups:
-                      groups[i]=[]
+                    if i not in groups:
+                        groups[i] = []
                     groups[i].append(lamp)
                     lamp_groups.append(i)
                 if (group2 & checkgroup) != 0:
-                    if not i+8 in groups:
-                      groups[i+8]=[]
-                    groups[i+8].append(lamp)
-                    lamp_groups.append(i+8)
-            
-            logger.debug("Lamp %d is in groups %s",lamp, lamp_groups)
-            
+                    if not i + 8 in groups:
+                        groups[i + 8] = []
+                    groups[i + 8].append(lamp)
+                    lamp_groups.append(i + 8)
+
+            logger.debug("Lamp %d is in groups %s", lamp, lamp_groups)
+
         except Exception as e:
             logger.warning("Can't get groups for lamp %s: %s", lamp, e)
     logger.info("Finished scanning for groups")
     return groups
 
+
 def initialize_lamps(data_object, client):
+    """Initialize all lamps and groups."""
+
     driver_object = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
     ha_prefix = data_object["ha_prefix"]
@@ -133,7 +132,7 @@ def initialize_lamps(data_object, client):
         "Found %d lamps",
         len(lamps),
     )
-    
+
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
@@ -211,7 +210,7 @@ def initialize_lamps(data_object, client):
         try:
             logger.debug("Group %s" % group)
             group_address = address.Group(int(group))
-            
+
             actual_level = driver_object.send(gear.QueryActualLevel(group_address))
             physical_minimum = driver_object.send(
                 gear.QueryPhysicalMinimum(group_address)
@@ -282,7 +281,6 @@ def initialize_lamps(data_object, client):
         except DALIError as err:
             logger.error("Error while initializing group <%s>: %s", group_lamp, err)
 
-
     if devices_names_config.is_devices_file_empty():
         devices_names_config.save_devices_names_file(data_object["all_lamps"])
     logger.info("initialize_lamps finished")
@@ -321,13 +319,15 @@ def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
     logger.debug("Reinitialize Command on %s", msg.topic)
     initialize_lamps(data_object, mqtt_client)
 
-def get_lamp_object(data_object,light):
-    if 'group_' in light:
-        """ Check if the comand is for a dali group """
-        group = int(re.search('group_(\d+)', light).group(1))
-        lamp_object=data_object["all_lamps"][group]
+
+def get_lamp_object(data_object, light):
+    """Retrieve lamp object from data object."""
+    if "group_" in light:
+        """Check if the comand is for a dali group"""
+        group = int(re.search("group_(\d+)", light).group(1))
+        lamp_object = data_object["all_lamps"][group]
     else:
-        """ The command is for a single lamp """
+        """The command is for a single lamp"""
         if light not in data_object["all_lamps"]:
             raise KeyError
         lamp_object = data_object["all_lamps"][light]
@@ -343,7 +343,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
     ).group(1)
     try:
         lamp_object = get_lamp_object(data_object, light)
-          
+
         level = None
         try:
             level = msg.payload.decode("utf-8")
@@ -375,6 +375,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
     except KeyError:
         logger.error("Lamp %s doesn't exists", light)
 
+
 def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT brightness get command message."""
     logger.debug("Brightness Get Command on %s: %s", msg.topic, msg.payload)
@@ -384,9 +385,11 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
     ).group(1)
     try:
         lamp_object = get_lamp_object(data_object, light)
-          
+
         try:
-            level = data_object["driver"].send(gear.QueryActualLevel(lamp_object.short_address))
+            level = data_object["driver"].send(
+                gear.QueryActualLevel(lamp_object.short_address)
+            )
             logger.debug("Get light <%s> results in %d", light, level.value)
 
             mqtt_client.publish(
@@ -394,7 +397,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
                 level.value,
                 retain=False,
             )
-                            
+
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_ON if level.value != 0 else MQTT_PAYLOAD_OFF,
@@ -412,6 +415,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
     except KeyError:
         logger.error("Lamp %s doesn't exists", light)
 
+
 def on_message(mqtt_client, data_object, msg):  # pylint: disable=W0613
     """Default callback on MQTT message."""
     logger.error("Don't publish to %s", msg.topic)
@@ -426,7 +430,6 @@ def on_connect(
 ):  # pylint: disable=W0613,R0913
     """Callback on connection to MQTT server."""
     mqtt_base_topic = data_object["base_topic"]
-    driver_object = data_object["driver"]
     client.subscribe(
         [
             (MQTT_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
@@ -495,6 +498,7 @@ def create_mqtt_client(
 
 
 def delay():
+    """Generate a random backoff time."""
     return MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
 
 

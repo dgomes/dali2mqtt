@@ -1,19 +1,24 @@
 """Configuration Object."""
-import yaml
 import logging
 
-from consts import LOG_FORMAT, ALL_SUPPORTED_LOG_LEVELS
+import yaml
+from consts import ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT
 
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
 class DevicesNamesConfigLoadError(Exception):
+    """Exception class for DevicesNamesConfig."""
+
     pass
 
 
 class DevicesNamesConfig:
+    """Devices Names Configuration."""
+
     def __init__(self, log_level, filename):
+        """Initialize devices names config."""
         self._path = filename
         self._devices_names = {}
 
@@ -39,6 +44,7 @@ class DevicesNamesConfig:
             logger.error("Could not load device names config: %s", err)
 
     def save_devices_names_file(self, all_lamps):
+        """Save configuration back to yaml file."""
         self._devices_names = {}
         for lamp_object in all_lamps.values():
             self._devices_names[lamp_object.short_address.address] = {
@@ -55,13 +61,12 @@ class DevicesNamesConfig:
         except Exception as err:
             logger.error("Could not save device names config: %s", err)
 
-    def is_devices_file_empty(self):
+    def is_devices_file_empty(self) -> bool:
+        """Check if we have any device configured."""
         return len(self._devices_names) == 0
 
     def get_friendly_name(self, short_address_value) -> str:
-        friendly_name = None
-        try:
-            friendly_name = self._devices_names[short_address_value]["friendly_name"]
-        except KeyError:
-            friendly_name = f"{short_address_value}"
-        return friendly_name
+        """Retrieve friendly_name."""
+        return self._devices_names[short_address_value].get(
+            "friendly_name", f"{short_address_value}"
+        )
