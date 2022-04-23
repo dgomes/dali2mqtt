@@ -75,8 +75,8 @@ class Lamp:
                 "identifiers": "dali2mqtt",
                 "name": "DALI Lights",
                 "sw_version": f"dali2mqtt {__version__}",
-                "model": "dali2mqtt",
-                "manufacturer": f"{__author__} <{__email__}>",
+                "model": f"{type(self.driver).__name__}>",
+                "manufacturer": "dali2mqtt",
             },
         }
         return json.dumps(json_config)
