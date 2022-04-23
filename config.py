@@ -6,7 +6,6 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver as Observer
 
 from consts import (
-    DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_PORT,
     DEFAULT_MQTT_SERVER,
     DEFAULT_HA_DISCOVERY_PREFIX,
@@ -20,7 +19,6 @@ from consts import (
     LOG_FORMAT,
     CONF_CONFIG,
     CONF_DALI_DRIVER,
-    CONF_DALI_LAMPS,
     CONF_LOG_COLOR,
     CONF_LOG_LEVEL,
     CONF_HA_DISCOVERY_PREFIX,
@@ -60,7 +58,10 @@ logger = logging.getLogger(__name__)
 
 
 class Config:
+    """Configuration representation."""
+
     def __init__(self, args, callback=None):
+        """Initialize configuration."""
         self._watchdog_observer = None
         self._path = args.config
         self._callback = callback
@@ -130,10 +131,12 @@ class Config:
             self.save_config_file()
 
     def __repr__(self):
+        """Retrieve dictionary of the config file."""
         return self._config
 
     @property
     def mqtt_conf(self):
+        """MQTT Settings."""
         return (
             self._config[CONF_MQTT_SERVER],
             self._config[CONF_MQTT_PORT],
@@ -144,20 +147,25 @@ class Config:
 
     @property
     def dali_driver(self):
+        """DALI driver configured."""
         return self._config[CONF_DALI_DRIVER]
 
     @property
     def ha_discovery_prefix(self):
+        """Home Assistant discovery prefix."""
         return self._config[CONF_HA_DISCOVERY_PREFIX]
 
     @property
     def log_level(self):
+        """Level to be used for logging."""
         return self._config[CONF_LOG_LEVEL]
 
     @property
     def log_color(self):
+        """Color to be used for logs."""
         return self._config[CONF_LOG_COLOR]
 
     @property
     def devices_names_file(self):
+        """Return filename containing devices names."""
         return self._config[CONF_DEVICES_NAMES_FILE]

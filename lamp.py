@@ -1,31 +1,32 @@
-"""Class to represent dali lamps"""
+"""Class to represent dali lamps."""
 import json
 import logging
-import dali.gear.general as gear
-from slugify import slugify
 
+import dali.gear.general as gear
 from consts import (
-    __author__,
-    __version__,
-    __email__,
-    MQTT_STATE_TOPIC,
-    MQTT_COMMAND_TOPIC,
-    MQTT_PAYLOAD_OFF,
-    MQTT_BRIGHTNESS_STATE_TOPIC,
-    MQTT_BRIGHTNESS_COMMAND_TOPIC,
-    MQTT_DALI2MQTT_STATUS,
-    MQTT_AVAILABLE,
-    MQTT_NOT_AVAILABLE,
-    RESET_COLOR,
-    LOG_FORMAT,
     ALL_SUPPORTED_LOG_LEVELS,
+    LOG_FORMAT,
+    MQTT_AVAILABLE,
+    MQTT_BRIGHTNESS_COMMAND_TOPIC,
+    MQTT_BRIGHTNESS_STATE_TOPIC,
+    MQTT_COMMAND_TOPIC,
+    MQTT_DALI2MQTT_STATUS,
+    MQTT_NOT_AVAILABLE,
+    MQTT_PAYLOAD_OFF,
+    MQTT_STATE_TOPIC,
+    __author__,
+    __email__,
+    __version__,
 )
+from slugify import slugify
 
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
 class Lamp:
+    """Representation of a DALI Lamp."""
+
     def __init__(
         self,
         log_level,
@@ -37,6 +38,7 @@ class Lamp:
         level,
         max_level,
     ):
+        """Initialize Lamp."""
         self.driver = driver
         self.short_address = short_address
         self.friendly_name = friendly_name
@@ -72,14 +74,15 @@ class Lamp:
                 "identifiers": "dali2mqtt",
                 "name": "DALI Lights",
                 "sw_version": f"dali2mqtt {__version__}",
-                "model": "dali2mqtt",
-                "manufacturer": f"{__author__} <{__email__}>",
+                "model": f"{type(self.driver).__name__}>",
+                "manufacturer": "dali2mqtt",
             },
         }
         return json.dumps(json_config)
 
     @property
     def level(self):
+        """Return brightness level."""
         return self.__level
 
     @level.setter
