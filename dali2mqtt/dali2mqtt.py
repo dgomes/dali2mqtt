@@ -57,8 +57,8 @@ from consts import (
 from dali.command import YesNoResponse
 from dali.exceptions import DALIError
 from devicesnamesconfig import DevicesNamesConfig
-from lamp import Lamp
 
+from lamp import Lamp
 from config import Config
 
 logging.basicConfig(format=LOG_FORMAT, level=os.environ.get("LOGLEVEL", "INFO"))
