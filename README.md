@@ -1,3 +1,4 @@
+![pytest workflow](https://github.com/dgomes/dali2mqtt/actions/workflows/pytest.yml/badge.svg)
 
 # dali2mqtt
 DALI <-> MQTT bridge
