@@ -70,11 +70,9 @@ def test_main(args, config, fake_mqttc, caplog):
     with mock.patch(
         "dali_mqtt_daemon.create_mqtt_client", return_value=fake_mqttc
     ) as mock_mqtt_client:
-        with mock.patch("yaml.safe_load", return_value={}) as mock_config_file:
-            with mock.patch("time.sleep", return_value=None) as sleep:
-                main(args)
-                mock_config_file.assert_called()
-                assert sleep.call_count == MAX_RETRIES
-                assert mock_mqtt_client.call_count == MAX_RETRIES
-                assert any("Could not load a configuration from config.yaml" in rec.message for rec in caplog.records)
-                assert any("Maximum retries of 10 reached, exiting" in rec.message for rec in caplog.records)
+        with mock.patch("time.sleep", return_value=None) as sleep:
+            main(args)
+            assert sleep.call_count == MAX_RETRIES
+            assert mock_mqtt_client.call_count == MAX_RETRIES
+            assert any("Could not load a configuration from config.yaml" in rec.message for rec in caplog.records)
+            assert any("Maximum retries of 10 reached, exiting" in rec.message for rec in caplog.records)
