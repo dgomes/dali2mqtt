@@ -11,12 +11,19 @@ from slugify import slugify
 MIN_BRIGHTNESS = 2
 MAX_BRIGHTNESS = 250
 
+def generate_driver_values(results):
+    for res in results:
+        result = mock.Mock()
+        result.value = res
+        print(result.value)
+        yield result
 
 @pytest.fixture
 def fake_driver():
     drive = mock.Mock()
-    drive.send = lambda x: 0x00
-    yield drive
+    drive.dummy = generate_driver_values([MIN_BRIGHTNESS, MIN_BRIGHTNESS, MAX_BRIGHTNESS, 100, 100])
+    drive.send = lambda x: next(drive.dummy)
+    return drive
 
 
 @pytest.fixture
@@ -37,10 +44,6 @@ def test_ha_config(fake_driver, fake_address):
         driver=fake_driver,
         friendly_name=friendly_name,
         short_address=addr,
-        min_physical_level=2,
-        min_level=MIN_BRIGHTNESS,
-        level=100,
-        max_level=MAX_BRIGHTNESS,
     )
 
     assert lamp1.device_name == slugify(friendly_name)

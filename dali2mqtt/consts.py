@@ -1,8 +1,9 @@
+"""Constants common the various modules."""
+
 import logging
 
-"""Constants common the various modules."""
 __author__ = "Diogo Gomes"
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 __email__ = "diogogomes@gmail.com"
 
 HASSEB = "hasseb"

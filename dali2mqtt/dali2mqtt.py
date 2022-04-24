@@ -67,13 +67,15 @@ logging.basicConfig(format=LOG_FORMAT, level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
-def dali_scan(driver):
+def dali_scan(dali_driver):
     """Scan a maximum number of dali devices."""
     lamps = []
     for lamp in range(0, 63):
         try:
             logging.debug("Search for Lamp %s", lamp)
-            present = driver.send(gear.QueryControlGearPresent(address.Short(lamp)))
+            present = dali_driver.send(
+                gear.QueryControlGearPresent(address.Short(lamp))
+            )
             if isinstance(present, YesNoResponse) and present.value:
                 lamps.append(lamp)
                 logger.debug("Found lamp at address %d", lamp)
@@ -126,13 +128,13 @@ def scan_groups(dali_driver, lamps):
 def initialize_lamps(data_object, client):
     """Initialize all lamps and groups."""
 
-    driver_object = data_object["driver"]
+    driver = data_object["driver"]
     mqtt_base_topic = data_object["base_topic"]
     ha_prefix = data_object["ha_prefix"]
     log_level = data_object["log_level"]
     devices_names_config = data_object["devices_names_config"]
     devices_names_config.load_devices_names_file()
-    lamps = dali_scan(driver_object)
+    lamps = dali_scan(driver)
     logger.info(
         "Found %d lamps",
         len(lamps),
@@ -142,15 +144,9 @@ def initialize_lamps(data_object, client):
         try:
             lamp_object = Lamp(
                 log_level,
-                driver_object,
+                driver,
                 name,
                 address,
-                min_physical_level=driver_object.send(
-                    gear.QueryPhysicalMinimum(address)
-                ).value,
-                min_level=driver_object.send(gear.QueryMinLevel(address)).value,
-                max_level=driver_object.send(gear.QueryMaxLevel(address)).value,
-                level=driver_object.send(gear.QueryActualLevel(address)).value,
             )
 
             data_object["all_lamps"][name] = lamp_object
@@ -205,7 +201,7 @@ def initialize_lamps(data_object, client):
             devices_names_config.get_friendly_name(short_address.address),
         )
 
-    groups = scan_groups(driver_object, lamps)
+    groups = scan_groups(driver, lamps)
     for group in groups:
         logger.debug("Publishing group %d", group)
 
@@ -234,7 +230,7 @@ def on_message_cmd(mqtt_client, data_object, msg):
         try:
             lamp_object = data_object["all_lamps"][light]
             logger.debug("Set light <%s> to %s", light, msg.payload)
-            data_object["driver"].send(gear.Off(lamp_object.short_address))
+            lamp_object.off()
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
                 MQTT_PAYLOAD_OFF,
@@ -280,7 +276,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
             lamp_object.level = int(msg.payload.decode("utf-8"))
             if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
-                data_object["driver"].send(gear.Off(lamp_object.short_address))
+                lamp_object.off()
                 logger.debug("Set light <%s> to OFF", light)
 
             mqtt_client.publish(
@@ -316,27 +312,25 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
         lamp_object = get_lamp_object(data_object, light)
 
         try:
-            level = data_object["driver"].send(
-                gear.QueryActualLevel(lamp_object.short_address)
-            )
-            logger.debug("Get light <%s> results in %d", light, level.value)
+            lamp_object.actual_level()
+            logger.debug("Get light <%s> results in %d", light, lamp_object.level)
 
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-                level.value,
+                lamp_object.level,
                 retain=False,
             )
 
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON if level.value != 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if lamp_object.level != 0 else MQTT_PAYLOAD_OFF,
                 retain=False,
             )
 
         except ValueError as err:
             logger.error(
                 "Can't convert <%s> to integer %d..%d: %s",
-                str(level),
+                lamp_object.level,
                 lamp_object.min_level,
                 lamp_object.max_level,
                 err,
@@ -374,7 +368,7 @@ def on_connect(
 
 
 def create_mqtt_client(
-    driver_object,
+    driver,
     mqtt_server,
     mqtt_port,
     mqtt_username,
@@ -389,7 +383,7 @@ def create_mqtt_client(
     mqttc = mqtt.Client(
         client_id="dali2mqtt",
         userdata={
-            "driver": driver_object,
+            "driver": driver,
             "base_topic": mqtt_base_topic,
             "ha_prefix": ha_prefix,
             "devices_names_config": devices_names_config,

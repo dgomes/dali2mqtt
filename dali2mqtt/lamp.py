@@ -14,8 +14,6 @@ from dali2mqtt.consts import (
     MQTT_NOT_AVAILABLE,
     MQTT_PAYLOAD_OFF,
     MQTT_STATE_TOPIC,
-    __author__,
-    __email__,
     __version__,
 )
 from slugify import slugify
@@ -33,20 +31,19 @@ class Lamp:
         driver,
         friendly_name,
         short_address,
-        min_physical_level,
-        min_level,
-        level,
-        max_level,
     ):
         """Initialize Lamp."""
         self.driver = driver
         self.short_address = short_address
         self.friendly_name = friendly_name
+
         self.device_name = slugify(friendly_name)
-        self.min_physical_level = min_physical_level
-        self.min_level = min_level
-        self.max_level = max_level
-        self.level = level
+
+        self.min_physical_level = driver.send(gear.QueryPhysicalMinimum(short_address)).value
+        self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
+        self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
+        self.level = driver.send(gear.QueryActualLevel(short_address)).value
+
         logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
 
     def gen_ha_config(self, mqtt_base_topic):
@@ -79,6 +76,10 @@ class Lamp:
         }
         return json.dumps(json_config)
 
+    def actual_level(self):
+        """Retrieve actual level from ballast."""
+        self.__level = self.driver.send(gear.QueryActualLevel(self.short_address))
+
     @property
     def level(self):
         """Return brightness level."""
@@ -86,6 +87,7 @@ class Lamp:
 
     @level.setter
     def level(self, value):
+        """Commit level to ballast."""
         if not self.min_level <= value <= self.max_level and value != 0:
             raise ValueError
         self.__level = value
@@ -94,5 +96,10 @@ class Lamp:
             "Set lamp <%s> brightness level to %s", self.friendly_name, self.level
         )
 
+    def off(self):
+        """Turn off ballast."""
+        self.driver.send(gear.Off(self.short_address))
+
     def __str__(self):
+        """Serialize lamp information."""
         return f"{self.device_name} - address: {self.short_address.address}, actual brightness level: {self.level} (minimum: {self.min_level}, max: {self.max_level}, physical minimum: {self.min_physical_level})"

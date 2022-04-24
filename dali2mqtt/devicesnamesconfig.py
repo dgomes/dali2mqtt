@@ -40,7 +40,7 @@ class DevicesNamesConfig:
         except yaml.YAMLError as error:
             logger.error("In devices file %s: %s", self._path, error)
             raise DevicesNamesConfigLoadError()
-        except Exception as err:
+        except Exception:
             logger.error(
                 "Could not load device names config <%s>, a new one will be created after successfull start",
                 self._path,
