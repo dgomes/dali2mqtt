@@ -134,6 +134,42 @@ def initialize_lamps(data_object, client):
         len(lamps),
     )
 
+    def gen_topics(lamp_object, lamp):
+        return [
+            (
+                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
+                lamp_object.gen_ha_config(mqtt_base_topic),
+                True,
+            ),
+            (
+                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                actual_level.value,
+                False,
+            ),
+            (
+                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                max_level.value,
+                True,
+            ),
+            (
+                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
+                min_level.value,
+                True,
+            ),
+            (
+                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
+                    mqtt_base_topic, lamp
+                ),
+                physical_minimum.value,
+                True,
+            ),
+            (
+                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
+                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
+                False,
+            ),
+        ]
+
     for lamp in lamps:
         try:
             short_address = address.Short(lamp)
@@ -160,39 +196,8 @@ def initialize_lamps(data_object, client):
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
             lamp = lamp_object.device_name
 
-            client.publish(
-                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                lamp_object.gen_ha_config(mqtt_base_topic),
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                actual_level.value,
-                retain=False,
-            )
-
-            client.publish(
-                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                max_level.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                min_level.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
-                    mqtt_base_topic, lamp
-                ),
-                physical_minimum.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
-                retain=False,
-            )
+            for topic, payload, retain in gen_topics(lamp_object, lamp):
+                client.publish(topic, payload, retain)
             logger.info(
                 "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
                 short_address.address,
@@ -237,39 +242,8 @@ def initialize_lamps(data_object, client):
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
             group_lamp = lamp_object.device_name
 
-            client.publish(
-                HA_DISCOVERY_PREFIX.format(ha_prefix, group_lamp),
-                lamp_object.gen_ha_config(mqtt_base_topic),
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
-                actual_level.value,
-                retain=False,
-            )
-
-            client.publish(
-                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, group_lamp),
-                max_level.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, group_lamp),
-                min_level.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
-                    mqtt_base_topic, group_lamp
-                ),
-                physical_minimum.value,
-                retain=True,
-            )
-            client.publish(
-                MQTT_STATE_TOPIC.format(mqtt_base_topic, group_lamp),
-                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
-                retain=False,
-            )
+            for topic, payload, retain in gen_topics(lamp_object, group_lamp):
+                client.publish(topic, payload, retain)
             logger.info(
                 "   - group address: %s, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
                 group_address.group,
@@ -310,13 +284,13 @@ def on_message_cmd(mqtt_client, data_object, msg):
                 retain=True,
             )
         except DALIError as err:
-            logger.error("Failed to set light <%s> to %s: %s", light, "OFF", err)
+            logger.error("Failed to set light <%s> to OFF: %s", light, err)
         except KeyError:
             logger.error("Lamp %s doesn't exists", light)
 
 
 def on_message_reinitialize_lamps_cmd(mqtt_client, data_object, msg):
-    """Callback on MQTT scan lamps command message"""
+    """Callback on MQTT scan lamps command message."""
     logger.debug("Reinitialize Command on %s", msg.topic)
     initialize_lamps(data_object, mqtt_client)
 
@@ -345,11 +319,8 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
     try:
         lamp_object = get_lamp_object(data_object, light)
 
-        level = None
         try:
-            level = msg.payload.decode("utf-8")
-            level = int(level)
-            lamp_object.level = level
+            lamp_object.level = int(msg.payload.decode("utf-8"))
             if lamp_object.level == 0:
                 # 0 in DALI is turn off with fade out
                 data_object["driver"].send(gear.Off(lamp_object.short_address))
@@ -368,7 +339,7 @@ def on_message_brightness_cmd(mqtt_client, data_object, msg):
         except ValueError as err:
             logger.error(
                 "Can't convert <%s> to integer %d..%d: %s",
-                str(level),
+                msg.payload.decode("utf-8"),
                 lamp_object.min_level,
                 lamp_object.max_level,
                 err,
@@ -504,6 +475,7 @@ def delay():
 
 
 def main(args):
+    """Main loop."""
     mqttc = None
     config = Config(args, lambda: on_detect_changes_in_config(mqttc))
 
