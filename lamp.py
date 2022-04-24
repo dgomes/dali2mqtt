@@ -3,21 +3,11 @@ import json
 import logging
 
 import dali.gear.general as gear
-from consts import (
-    ALL_SUPPORTED_LOG_LEVELS,
-    LOG_FORMAT,
-    MQTT_AVAILABLE,
-    MQTT_BRIGHTNESS_COMMAND_TOPIC,
-    MQTT_BRIGHTNESS_STATE_TOPIC,
-    MQTT_COMMAND_TOPIC,
-    MQTT_DALI2MQTT_STATUS,
-    MQTT_NOT_AVAILABLE,
-    MQTT_PAYLOAD_OFF,
-    MQTT_STATE_TOPIC,
-    __author__,
-    __email__,
-    __version__,
-)
+from consts import (ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT, MQTT_AVAILABLE,
+                    MQTT_BRIGHTNESS_COMMAND_TOPIC, MQTT_BRIGHTNESS_STATE_TOPIC,
+                    MQTT_COMMAND_TOPIC, MQTT_DALI2MQTT_STATUS,
+                    MQTT_NOT_AVAILABLE, MQTT_PAYLOAD_OFF, MQTT_STATE_TOPIC,
+                    __author__, __email__, __version__)
 from slugify import slugify
 
 logging.basicConfig(format=LOG_FORMAT)
