@@ -6,6 +6,7 @@ import logging
 import random
 import re
 import time
+import os
 
 import dali.address as address
 import dali.gear.general as gear
@@ -33,6 +34,7 @@ from consts import (
     LOG_FORMAT,
     MAX_RETRIES,
     MIN_BACKOFF_TIME,
+    MAX_BACKOFF_TIME,
     MIN_HASSEB_FIRMWARE_VERSION,
     MQTT_AVAILABLE,
     MQTT_BRIGHTNESS_COMMAND_TOPIC,
@@ -59,7 +61,7 @@ from lamp import Lamp
 
 from config import Config
 
-logging.basicConfig(format=LOG_FORMAT)
+logging.basicConfig(format=LOG_FORMAT, level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
@@ -468,12 +470,6 @@ def create_mqtt_client(
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
-
-def delay():
-    """Generate a random backoff time."""
-    return MIN_BACKOFF_TIME + random.randint(0, 1000) / 1000.0
-
-
 def main(args):
     """Main loop."""
     mqttc = None
@@ -517,24 +513,25 @@ def main(args):
 
         dali_driver = DaliServer("localhost", 55825)
 
-    should_backoff = True
     retries = 0
-    run = True
-    while run:
-        mqttc = create_mqtt_client(
-            dali_driver,
-            *config.mqtt_conf,
-            devices_names_config,
-            config.ha_discovery_prefix,
-            config.log_level,
-        )
-        mqttc.loop_forever()
-        if should_backoff:
+    while True:
+        try:
+            mqttc = create_mqtt_client(
+                dali_driver,
+                *config.mqtt_conf,
+                devices_names_config,
+                config.ha_discovery_prefix,
+                config.log_level,
+            )
+            mqttc.loop_forever()
+            retries = 0 #if we reach here, it means we where already connected successfully
+        except Exception as e:
+            logger.error("%s: %s", type(e).__name__, e)
             if retries == MAX_RETRIES:
-                run = False
-            time.sleep(delay())
-            retries += 1  # TODO reset on successfull connection
-
+                logger.error("Maximum retries of %d reached, exiting...", retries)
+                break
+            time.sleep(random.randint(MIN_BACKOFF_TIME, MAX_BACKOFF_TIME))
+            retries += 1  
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
