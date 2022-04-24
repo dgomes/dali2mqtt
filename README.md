@@ -36,7 +36,7 @@ pip install -r requirements.txt
 You can create a configuration file when you call the daemon the first time
 
 ```bash
-venv/bin/python3 ./dali_mqtt_daemon.py
+venv/bin/python3 -m dali2mqtt.dali2mqtt
 ```
 
 Then just edit the file accordingly. You can also create the file with the right values, by using the arguments of dali_mqtt_daemon.py:
