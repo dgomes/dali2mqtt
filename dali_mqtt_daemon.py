@@ -172,26 +172,19 @@ def initialize_lamps(data_object, client):
             ),
         ]
 
-    for lamp in lamps:
+    def create_mqtt_lamp(address, name):
         try:
-            short_address = address.Short(lamp)
-            actual_level = driver_object.send(gear.QueryActualLevel(short_address))
-            physical_minimum = driver_object.send(
-                gear.QueryPhysicalMinimum(short_address)
-            )
-            min_level = driver_object.send(gear.QueryMinLevel(short_address))
-            max_level = driver_object.send(gear.QueryMaxLevel(short_address))
-            device_name = devices_names_config.get_friendly_name(short_address.address)
-
             lamp_object = Lamp(
                 log_level,
                 driver_object,
-                device_name,
-                short_address,
-                physical_minimum.value,
-                min_level.value,
-                actual_level.value,
-                max_level.value,
+                name,
+                address,
+                min_physical_level=driver_object.send(
+                    gear.QueryPhysicalMinimum(address)
+                ).value,
+                min_level=driver_object.send(gear.QueryMinLevel(address)).value,
+                max_level=driver_object.send(gear.QueryMaxLevel(address)).value,
+                level=driver_object.send(gear.QueryActualLevel(address)).value,
             )
 
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
@@ -203,46 +196,23 @@ def initialize_lamps(data_object, client):
             logger.info(lamp_object)
 
         except DALIError as err:
-            logger.error("While initializing lamp<%s>: %s", lamp, err)
+            logger.error("While initializing <%s> @ %s: %s", name, address, err)
+
+    for lamp in lamps:
+        short_address = address.Short(lamp)
+
+        create_mqtt_lamp(
+            short_address,
+            devices_names_config.get_friendly_name(short_address.address),
+        )
 
     groups = scan_groups(driver_object, lamps)
     for group in groups:
         logger.debug("Publishing group %d", group)
-        try:
-            logger.debug("Group %s" % group)
-            group_address = address.Group(int(group))
 
-            actual_level = driver_object.send(gear.QueryActualLevel(group_address))
-            physical_minimum = driver_object.send(
-                gear.QueryPhysicalMinimum(group_address)
-            )
-            min_level = driver_object.send(gear.QueryMinLevel(group_address))
-            max_level = driver_object.send(gear.QueryMaxLevel(group_address))
-            device_name = f"group_{group}"
+        group_address = address.Group(int(group))
 
-            group_lamp = device_name
-            logger.debug("Group Name: %s", group_lamp)
-
-            lamp_object = Lamp(
-                log_level,
-                driver_object,
-                device_name,
-                group_address,
-                physical_minimum.value,
-                min_level.value,
-                actual_level.value,
-                max_level.value,
-            )
-
-            data_object["all_lamps"][lamp_object.device_name] = lamp_object
-            group_lamp = lamp_object.device_name
-
-            for topic, payload, retain in gen_topics(lamp_object, group_lamp):
-                client.publish(topic, payload, retain)
-            logger.info(lamp_object)
-
-        except DALIError as err:
-            logger.error("Error while initializing group <%s>: %s", group_lamp, err)
+        create_mqtt_lamp(group_address, f"group_{group}")
 
     if devices_names_config.is_devices_file_empty():
         devices_names_config.save_devices_names_file(data_object["all_lamps"])
