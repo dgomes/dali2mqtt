@@ -252,7 +252,7 @@ def get_lamp_object(data_object, light):
     """Retrieve lamp object from data object."""
     if "group_" in light:
         """Check if the comand is for a dali group"""
-        group = int(re.search("group_(\d+)", light).group(1))
+        group = int(re.search(r"group_(\d+)", light).group(1))
         lamp_object = data_object["all_lamps"][group]
     else:
         """The command is for a single lamp"""

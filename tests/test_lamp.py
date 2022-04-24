@@ -32,7 +32,6 @@ def fake_driver():
 def fake_address():
     address = mock.Mock()
     address.address = 1
-
     address.__repr__ = lambda: "1"
 
 def test_ha_config(fake_driver, fake_address):
