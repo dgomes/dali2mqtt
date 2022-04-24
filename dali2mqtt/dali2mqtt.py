@@ -8,10 +8,17 @@ import re
 import time
 import os
 
+import paho.mqtt.client as mqtt
+
 import dali.address as address
 import dali.gear.general as gear
-import paho.mqtt.client as mqtt
-from consts import (
+from dali.command import YesNoResponse
+from dali.exceptions import DALIError
+
+from dali2mqtt.devicesnamesconfig import DevicesNamesConfig
+from dali2mqtt.lamp import Lamp
+from dali2mqtt.config import Config
+from dali2mqtt.consts import (
     ALL_SUPPORTED_LOG_LEVELS,
     CONF_CONFIG,
     CONF_DALI_DRIVER,
@@ -54,12 +61,7 @@ from consts import (
     TRIDONIC,
     YELLOW_COLOR,
 )
-from dali.command import YesNoResponse
-from dali.exceptions import DALIError
-from devicesnamesconfig import DevicesNamesConfig
 
-from lamp import Lamp
-from config import Config
 
 logging.basicConfig(format=LOG_FORMAT, level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)

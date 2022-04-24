@@ -1,7 +1,7 @@
 """Tests for lamp."""
 
-from lamp import Lamp
-from consts import __version__
+from dali2mqtt.lamp import Lamp
+from dali2mqtt.consts import __version__
 from unittest import mock
 from dali.address import Short
 import pytest

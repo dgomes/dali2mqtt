@@ -3,7 +3,7 @@ import logging
 
 import voluptuous as vol
 import yaml
-from consts import (
+from dali2mqtt.consts import (
     ALL_SUPPORTED_LOG_LEVELS,
     CONF_CONFIG,
     CONF_DALI_DRIVER,

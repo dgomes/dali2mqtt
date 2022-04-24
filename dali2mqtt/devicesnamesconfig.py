@@ -2,7 +2,7 @@
 import logging
 
 import yaml
-from consts import ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT
+from dali2mqtt.consts import ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT
 
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)

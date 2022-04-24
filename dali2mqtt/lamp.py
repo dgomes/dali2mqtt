@@ -3,7 +3,7 @@ import json
 import logging
 
 import dali.gear.general as gear
-from consts import (
+from dali2mqtt.consts import (
     ALL_SUPPORTED_LOG_LEVELS,
     LOG_FORMAT,
     MQTT_AVAILABLE,

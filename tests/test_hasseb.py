@@ -1,10 +1,10 @@
 """Tests based on hasseb driver."""
 
-from dali_mqtt_daemon import main
+from dali2mqtt.dali2mqtt import main
 from unittest import mock
 import pytest
 
-from consts import (
+from dali2mqtt.consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_SERVER,
     DEFAULT_MQTT_PORT,
@@ -68,7 +68,7 @@ def fake_mqttc():
 def test_main(args, config, fake_mqttc, caplog):
     """Test main loop."""
     with mock.patch(
-        "dali_mqtt_daemon.create_mqtt_client", return_value=fake_mqttc
+        "dali2mqtt.dali2mqtt.create_mqtt_client", return_value=fake_mqttc
     ) as mock_mqtt_client:
         with mock.patch("time.sleep", return_value=None) as sleep:
             main(args)
