@@ -145,29 +145,29 @@ def initialize_lamps(data_object, client):
             ),
             (
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                actual_level.value,
+                lamp_object.level,
                 False,
             ),
             (
                 MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                max_level.value,
+                lamp_object.max_level,
                 True,
             ),
             (
                 MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                min_level.value,
+                lamp_object.min_level,
                 True,
             ),
             (
                 MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
                     mqtt_base_topic, lamp
                 ),
-                physical_minimum.value,
+                lamp_object.min_physical_level,
                 True,
             ),
             (
                 MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if actual_level.value > 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if lamp_object.level > 0 else MQTT_PAYLOAD_OFF,
                 False,
             ),
         ]
@@ -182,7 +182,6 @@ def initialize_lamps(data_object, client):
             min_level = driver_object.send(gear.QueryMinLevel(short_address))
             max_level = driver_object.send(gear.QueryMaxLevel(short_address))
             device_name = devices_names_config.get_friendly_name(short_address.address)
-            lamp = device_name
 
             lamp_object = Lamp(
                 log_level,
@@ -196,18 +195,12 @@ def initialize_lamps(data_object, client):
             )
 
             data_object["all_lamps"][lamp_object.device_name] = lamp_object
-            lamp = lamp_object.device_name
 
-            for topic, payload, retain in gen_topics(lamp_object, lamp):
+            for topic, payload, retain in gen_topics(
+                lamp_object, lamp_object.device_name
+            ):
                 client.publish(topic, payload, retain)
-            logger.info(
-                "   - short address: %d, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
-                short_address.address,
-                actual_level.value,
-                min_level.value,
-                max_level.value,
-                physical_minimum.value,
-            )
+            logger.info(lamp_object)
 
         except DALIError as err:
             logger.error("While initializing lamp<%s>: %s", lamp, err)
@@ -246,14 +239,7 @@ def initialize_lamps(data_object, client):
 
             for topic, payload, retain in gen_topics(lamp_object, group_lamp):
                 client.publish(topic, payload, retain)
-            logger.info(
-                "   - group address: %s, actual brightness level: %d (minimum: %d, max: %d, physical minimum: %d)",
-                group_address.group,
-                actual_level.value,
-                min_level.value,
-                max_level.value,
-                physical_minimum.value,
-            )
+            logger.info(lamp_object)
 
         except DALIError as err:
             logger.error("Error while initializing group <%s>: %s", group_lamp, err)
@@ -470,6 +456,7 @@ def create_mqtt_client(
     mqttc.connect(mqtt_server, mqtt_port, 60)
     return mqttc
 
+
 def main(args):
     """Main loop."""
     mqttc = None
@@ -524,14 +511,17 @@ def main(args):
                 config.log_level,
             )
             mqttc.loop_forever()
-            retries = 0 #if we reach here, it means we where already connected successfully
+            retries = (
+                0  # if we reach here, it means we where already connected successfully
+            )
         except Exception as e:
             logger.error("%s: %s", type(e).__name__, e)
             if retries == MAX_RETRIES:
                 logger.error("Maximum retries of %d reached, exiting...", retries)
                 break
             time.sleep(random.randint(MIN_BACKOFF_TIME, MAX_BACKOFF_TIME))
-            retries += 1  
+            retries += 1
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)

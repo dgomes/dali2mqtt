@@ -93,3 +93,6 @@ class Lamp:
         logger.debug(
             "Set lamp <%s> brightness level to %s", self.friendly_name, self.level
         )
+
+    def __str__(self):
+        return f"{self.device_name} - address: {self.short_address.address}, actual brightness level: {self.level} (minimum: {self.min_level}, max: {self.max_level}, physical minimum: {self.min_physical_level})"
