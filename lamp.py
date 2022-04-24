@@ -3,11 +3,21 @@ import json
 import logging
 
 import dali.gear.general as gear
-from consts import (ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT, MQTT_AVAILABLE,
-                    MQTT_BRIGHTNESS_COMMAND_TOPIC, MQTT_BRIGHTNESS_STATE_TOPIC,
-                    MQTT_COMMAND_TOPIC, MQTT_DALI2MQTT_STATUS,
-                    MQTT_NOT_AVAILABLE, MQTT_PAYLOAD_OFF, MQTT_STATE_TOPIC,
-                    __author__, __email__, __version__)
+from consts import (
+    ALL_SUPPORTED_LOG_LEVELS,
+    LOG_FORMAT,
+    MQTT_AVAILABLE,
+    MQTT_BRIGHTNESS_COMMAND_TOPIC,
+    MQTT_BRIGHTNESS_STATE_TOPIC,
+    MQTT_COMMAND_TOPIC,
+    MQTT_DALI2MQTT_STATUS,
+    MQTT_NOT_AVAILABLE,
+    MQTT_PAYLOAD_OFF,
+    MQTT_STATE_TOPIC,
+    __author__,
+    __email__,
+    __version__,
+)
 from slugify import slugify
 
 logging.basicConfig(format=LOG_FORMAT)
@@ -46,10 +56,8 @@ class Lamp:
             "obj_id": f"dali_light_{self.device_name}",
             "uniq_id": f"{type(self.driver).__name__}_{self.short_address}",
             "stat_t": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.device_name),
-            "cmd_t": MQTT_COMMAND_TOPIC.format(
-                mqtt_base_topic, self.device_name
-            ),
-            "pl_off": MQTT_PAYLOAD_OFF.decode('utf-8'),
+            "cmd_t": MQTT_COMMAND_TOPIC.format(mqtt_base_topic, self.device_name),
+            "pl_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
             "bri_stat_t": MQTT_BRIGHTNESS_STATE_TOPIC.format(
                 mqtt_base_topic, self.device_name
             ),
