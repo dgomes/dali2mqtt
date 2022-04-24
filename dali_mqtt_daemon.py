@@ -136,42 +136,6 @@ def initialize_lamps(data_object, client):
         len(lamps),
     )
 
-    def gen_topics(lamp_object, lamp):
-        return [
-            (
-                HA_DISCOVERY_PREFIX.format(ha_prefix, lamp),
-                lamp_object.gen_ha_config(mqtt_base_topic),
-                True,
-            ),
-            (
-                MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                lamp_object.level,
-                False,
-            ),
-            (
-                MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                lamp_object.max_level,
-                True,
-            ),
-            (
-                MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, lamp),
-                lamp_object.min_level,
-                True,
-            ),
-            (
-                MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
-                    mqtt_base_topic, lamp
-                ),
-                lamp_object.min_physical_level,
-                True,
-            ),
-            (
-                MQTT_STATE_TOPIC.format(mqtt_base_topic, lamp),
-                MQTT_PAYLOAD_ON if lamp_object.level > 0 else MQTT_PAYLOAD_OFF,
-                False,
-            ),
-        ]
-
     def create_mqtt_lamp(address, name):
         try:
             lamp_object = Lamp(
@@ -187,12 +151,45 @@ def initialize_lamps(data_object, client):
                 level=driver_object.send(gear.QueryActualLevel(address)).value,
             )
 
-            data_object["all_lamps"][lamp_object.device_name] = lamp_object
+            data_object["all_lamps"][name] = lamp_object
 
-            for topic, payload, retain in gen_topics(
-                lamp_object, lamp_object.device_name
-            ):
+            mqtt_data = [
+                (
+                    HA_DISCOVERY_PREFIX.format(ha_prefix, name),
+                    lamp_object.gen_ha_config(mqtt_base_topic),
+                    True,
+                ),
+                (
+                    MQTT_BRIGHTNESS_STATE_TOPIC.format(mqtt_base_topic, name),
+                    lamp_object.level,
+                    False,
+                ),
+                (
+                    MQTT_BRIGHTNESS_MAX_LEVEL_TOPIC.format(mqtt_base_topic, name),
+                    lamp_object.max_level,
+                    True,
+                ),
+                (
+                    MQTT_BRIGHTNESS_MIN_LEVEL_TOPIC.format(mqtt_base_topic, name),
+                    lamp_object.min_level,
+                    True,
+                ),
+                (
+                    MQTT_BRIGHTNESS_PHYSICAL_MINIMUM_LEVEL_TOPIC.format(
+                        mqtt_base_topic, name
+                    ),
+                    lamp_object.min_physical_level,
+                    True,
+                ),
+                (
+                    MQTT_STATE_TOPIC.format(mqtt_base_topic, name),
+                    MQTT_PAYLOAD_ON if lamp_object.level > 0 else MQTT_PAYLOAD_OFF,
+                    False,
+                ),
+            ]
+            for topic, payload, retain in mqtt_data:
                 client.publish(topic, payload, retain)
+
             logger.info(lamp_object)
 
         except DALIError as err:
