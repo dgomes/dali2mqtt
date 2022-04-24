@@ -8,8 +8,10 @@ import pytest
 import json
 from slugify import slugify
 
+MIN__PHYSICAL_BRIGHTNESS = 1
 MIN_BRIGHTNESS = 2
 MAX_BRIGHTNESS = 250
+ACTUAL_BRIGHTNESS = 100
 
 def generate_driver_values(results):
     for res in results:
@@ -21,7 +23,7 @@ def generate_driver_values(results):
 @pytest.fixture
 def fake_driver():
     drive = mock.Mock()
-    drive.dummy = generate_driver_values([MIN_BRIGHTNESS, MIN_BRIGHTNESS, MAX_BRIGHTNESS, 100, 100])
+    drive.dummy = generate_driver_values([MIN__PHYSICAL_BRIGHTNESS, MIN_BRIGHTNESS, MAX_BRIGHTNESS, ACTUAL_BRIGHTNESS, ACTUAL_BRIGHTNESS])
     drive.send = lambda x: next(drive.dummy)
     return drive
 
@@ -49,7 +51,7 @@ def test_ha_config(fake_driver, fake_address):
     assert lamp1.device_name == slugify(friendly_name)
     assert lamp1.short_address.address == addr_number
 
-    assert str(lamp1) == f'my-lamp - address: {addr_number}, actual brightness level: 100 (minimum: {MIN_BRIGHTNESS}, max: {MAX_BRIGHTNESS}, physical minimum: 2)'
+    assert str(lamp1) == f'my-lamp - address: {addr_number}, actual brightness level: {ACTUAL_BRIGHTNESS} (minimum: {MIN_BRIGHTNESS}, max: {MAX_BRIGHTNESS}, physical minimum: {MIN__PHYSICAL_BRIGHTNESS})'
 
     assert json.loads(lamp1.gen_ha_config("test")) == {
         "name": friendly_name,
