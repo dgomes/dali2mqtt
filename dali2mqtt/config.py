@@ -100,7 +100,8 @@ class Config:
                     )
                     configuration = {}
                 self._config = CONF_SCHEMA(configuration)
-                self._callback()
+                if self._callback:
+                    self._callback()
             except AttributeError:
                 # No callback configured
                 pass
@@ -111,8 +112,8 @@ class Config:
     def save_config_file(self):
         """Save configuration back to yaml file."""
         try:
+            cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
             with open(self._path, "w", encoding="utf8") as outfile:
-                cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
                 yaml.dump(
                     self._config, outfile, default_flow_style=False, allow_unicode=True
                 )
