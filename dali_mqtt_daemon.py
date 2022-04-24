@@ -468,7 +468,7 @@ def main(args):
         dali_driver = DaliServer("localhost", 55825)
 
     retries = 0
-    while True:
+    while retries < MAX_RETRIES:
         try:
             mqttc = create_mqtt_client(
                 dali_driver,
@@ -483,11 +483,10 @@ def main(args):
             )
         except Exception as e:
             logger.error("%s: %s", type(e).__name__, e)
-            if retries == MAX_RETRIES:
-                logger.error("Maximum retries of %d reached, exiting...", retries)
-                break
             time.sleep(random.randint(MIN_BACKOFF_TIME, MAX_BACKOFF_TIME))
             retries += 1
+
+    logger.error("Maximum retries of %d reached, exiting...", retries)
 
 
 if __name__ == "__main__":
