@@ -74,5 +74,4 @@ def test_main(args, config, fake_mqttc, caplog):
             main(args)
             assert sleep.call_count == MAX_RETRIES
             assert mock_mqtt_client.call_count == MAX_RETRIES
-            assert any("Could not load a configuration from config.yaml" in rec.message for rec in caplog.records)
             assert any("Maximum retries of 10 reached, exiting" in rec.message for rec in caplog.records)
