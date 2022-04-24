@@ -39,7 +39,9 @@ class Lamp:
 
         self.device_name = slugify(friendly_name)
 
-        self.min_physical_level = driver.send(gear.QueryPhysicalMinimum(short_address)).value
+        self.min_physical_level = driver.send(
+            gear.QueryPhysicalMinimum(short_address)
+        ).value
         self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
         self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
         self.level = driver.send(gear.QueryActualLevel(short_address)).value
@@ -102,4 +104,8 @@ class Lamp:
 
     def __str__(self):
         """Serialize lamp information."""
-        return f"{self.device_name} - address: {self.short_address.address}, actual brightness level: {self.level} (minimum: {self.min_level}, max: {self.max_level}, physical minimum: {self.min_physical_level})"
+        return (
+            f"{self.device_name} - address: {self.short_address.address}, "
+            f"actual brightness level: {self.level} (minimum: {self.min_level}, "
+            f"max: {self.max_level}, physical minimum: {self.min_physical_level})"
+        )
