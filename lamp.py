@@ -53,29 +53,30 @@ class Lamp:
         """Generate a automatic configuration for Home Assistant."""
         json_config = {
             "name": self.friendly_name,
-            "unique_id": "DALI2MQTT_LIGHT_{}".format(self.device_name),
-            "state_topic": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.device_name),
-            "command_topic": MQTT_COMMAND_TOPIC.format(
+            "obj_id": f"dali_light_{self.device_name}",
+            "uniq_id": f"{type(self.driver).__name__}_{self.short_address}",
+            "stat_t": MQTT_STATE_TOPIC.format(mqtt_base_topic, self.device_name),
+            "cmd_t": MQTT_COMMAND_TOPIC.format(
                 mqtt_base_topic, self.device_name
             ),
-            "payload_off": MQTT_PAYLOAD_OFF.decode("utf-8"),
-            "brightness_state_topic": MQTT_BRIGHTNESS_STATE_TOPIC.format(
+            "pl_off": MQTT_PAYLOAD_OFF.decode('utf-8'),
+            "bri_stat_t": MQTT_BRIGHTNESS_STATE_TOPIC.format(
                 mqtt_base_topic, self.device_name
             ),
-            "brightness_command_topic": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
+            "bri_cmd_t": MQTT_BRIGHTNESS_COMMAND_TOPIC.format(
                 mqtt_base_topic, self.device_name
             ),
-            "brightness_scale": self.max_level,
-            "on_command_type": "brightness",
-            "availability_topic": MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic),
-            "payload_available": MQTT_AVAILABLE,
-            "payload_not_available": MQTT_NOT_AVAILABLE,
+            "bri_scl": self.max_level,
+            "on_cmd_type": "brightness",
+            "avty_t": MQTT_DALI2MQTT_STATUS.format(mqtt_base_topic),
+            "pl_avail": MQTT_AVAILABLE,
+            "pl_not_avail": MQTT_NOT_AVAILABLE,
             "device": {
-                "identifiers": "dali2mqtt",
+                "ids": "dali2mqtt",
                 "name": "DALI Lights",
-                "sw_version": f"dali2mqtt {__version__}",
-                "model": f"{type(self.driver).__name__}>",
-                "manufacturer": "dali2mqtt",
+                "sw": f"dali2mqtt {__version__}",
+                "mdl": f"{type(self.driver).__name__}",
+                "mf": "dali2mqtt",
             },
         }
         return json.dumps(json_config)
