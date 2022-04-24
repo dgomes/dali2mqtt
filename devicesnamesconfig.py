@@ -67,6 +67,8 @@ class DevicesNamesConfig:
 
     def get_friendly_name(self, short_address_value) -> str:
         """Retrieve friendly_name."""
-        return self._devices_names[short_address_value].get(
-            "friendly_name", f"{short_address_value}"
-        )
+        if short_address_value in self._devices_names:
+            return self._devices_names[short_address_value].get(
+                "friendly_name", f"{short_address_value}"
+            )
+        return str(short_address_value)
