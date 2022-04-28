@@ -54,6 +54,9 @@ Then just edit the file accordingly. You can also create the file with the right
   --log-level {critical,error,warning,info,debug}
                         Log level
   --log-color           Coloring output
+  
+  --group-mode {median,max,min,off}
+                        How the light level of a group is set when the level some lamps of the is changed   
 
 ```
 

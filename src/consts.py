@@ -24,6 +24,7 @@ CONF_DALI_LAMPS = "dali_lamps"
 CONF_HA_DISCOVERY_PREFIX = "ha_discovery_prefix"
 CONF_LOG_LEVEL = "log_level"
 CONF_LOG_COLOR = "log_color"
+CONF_GROUP_MODE = "group_mode"
 
 DEFAULT_CONFIG_FILE = "config.yaml"
 DEFAULT_DEVICES_NAMES_FILE = "devices.yaml"
@@ -37,6 +38,7 @@ DEFAULT_DALI_LAMPS = 64
 DEFAULT_HA_DISCOVERY_PREFIX = "homeassistant"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_LOG_COLOR = False
+DEFAULT_GROUP_MODE = "median"
 
 ALL_SUPPORTED_LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -45,6 +47,8 @@ ALL_SUPPORTED_LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG,
 }
+
+ALL_SUPPORTED_GROUP_MODES = ["median", "max", "min", "off"]
 
 RESET_COLOR = "\x1b[0m"
 RED_COLOR = "\x1b[31;21m"
@@ -75,6 +79,9 @@ CONF_SCHEMA = vol.Schema(
             ALL_SUPPORTED_LOG_LEVELS
         ),
         vol.Optional(CONF_LOG_COLOR, default=DEFAULT_LOG_COLOR): bool,
+        vol.Optional(CONF_GROUP_MODE, default=DEFAULT_GROUP_MODE): vol.In(
+            ALL_SUPPORTED_GROUP_MODES
+        ),
     },
     extra=False,
 )

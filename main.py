@@ -57,6 +57,7 @@ parser.add_argument(f"--{CONF_DALI_LAMPS.replace('_', '-')}", help="Number of la
 parser.add_argument(f"--{CONF_HA_DISCOVERY_PREFIX.replace('_', '-')}", help="HA discovery mqtt prefix", )
 parser.add_argument(f"--{CONF_LOG_LEVEL.replace('_', '-')}", help="Log level", choices=ALL_SUPPORTED_LOG_LEVELS, )
 parser.add_argument(f"--{CONF_LOG_COLOR.replace('_', '-')}", help="Coloring output", action="store_true", )
+parser.add_argument(f"--{CONF_GROUP_MODE.replace('_', '-')}", help="Group mode", choices=ALL_SUPPORTED_GROUP_MODES,)
 
 args = parser.parse_args()
 args = vars(args)

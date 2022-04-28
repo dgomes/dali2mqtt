@@ -59,7 +59,16 @@ class Group:
 
     def recalc_level(self):
         old = self.level
-        self.level = round(median(x.level for x in self.lamps))
+        if self.config[CONF_GROUP_MODE] == "median":
+            self.level = round(median(x.level for x in self.lamps))
+        elif self.config[CONF_GROUP_MODE] == "max":
+            self.level = round(max(x.level for x in self.lamps))
+        elif self.config[CONF_GROUP_MODE] == "min":
+            self.level = round(min(x.level for x in self.lamps))
+        elif self.config[CONF_GROUP_MODE] == "off":
+            return
+        else:
+            raise RuntimeError(f"Invalid group mode: {self.config[CONF_GROUP_MODE]}")
         if old != self.level:
             self.mqtt.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(self.config[CONF_MQTT_BASE_TOPIC], self.device_name),
@@ -136,11 +145,3 @@ class Group:
             level = denormalize(level, 0, 255, self.min_levels, self.max_level)
         self.driver.send(gear.DAPC(self.dali_group, level))
         logger.debug(f"Set group {self.friendly_name} brightness level to {self.level} ({level})")
-
-    # def _getLevelDALI(self):
-    #     level = self.driver.send(gear.QueryActualLevel(self.address)).value
-    #     if level == 0:
-    #         self.level = 0
-    #     else:
-    #         self.level = denormalize(level, self.min_levels, self.max_level, 0, 255)
-    #     logger.debug(f"Get group {self.friendly_name} brightness level {self.level} ({level})")
