@@ -1,8 +1,10 @@
-hidapi==0.11.2
+hid==1.0.5
+hidapi==0.14.0
 paho-mqtt==1.6.1
 python-dali==0.9
 python-slugify==6.1.1
 pyusb==1.2.1
-PyYAML==6.0
+PyYAML==6.0.1
+text-unidecode==1.3
 voluptuous==0.13.1
 watchdog==2.1.7

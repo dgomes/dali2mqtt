@@ -3,13 +3,13 @@ Description=dali2mqtt
 After=network.target
 
 [Service]
-ExecStart=/home/dgomes/dali2mqtt/venv/bin/python3 dali-mqtt-daemon.py
-WorkingDirectory=/home/dgomes/dali2mqtt
+ExecStart=/opt/dali2mqtt/venv/bin/python3 dali-mqtt-daemon.py
+WorkingDirectory=/opt/dali2mqtt
 StandardOutput=inherit
 StandardError=inherit
 Environment=PYTHONUNBUFFERED=true
 Restart=always
-User=dali
+User=root
 
 [Install]
 WantedBy=multi-user.target
