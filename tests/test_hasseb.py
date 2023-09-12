@@ -1,17 +1,19 @@
 """Tests based on hasseb driver."""
 
-from dali_mqtt_daemon import main
+from dali2mqtt.dali2mqtt import main
 from unittest import mock
 import pytest
 
-from consts import (
+from dali2mqtt.consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_MQTT_SERVER,
     DEFAULT_MQTT_PORT,
     DEFAULT_LOG_LEVEL,
     DEFAULT_LOG_COLOR,
     DEFAULT_HA_DISCOVERY_PREFIX,
+    MAX_RETRIES,
 )
+
 
 @pytest.fixture
 def args():
@@ -25,24 +27,51 @@ def args():
     mock_args.log_color = DEFAULT_LOG_COLOR
     return mock_args
 
+
 @pytest.fixture
 def config():
-    return {"config": "config.yaml",
-            "dali_driver": "hasseb",
-            "dali_lamps": 2,
-            "mqtt_server": "localhost",
-            "mqtt_port": 1883,
-            "mqtt_base_topic": "dali2mqtt",
-            "ha_discovery_prefix": "homeassistant",
-            "log_level": "info",
-            "log_color": False,
+    return {
+        "config": "config.yaml",
+        "dali_driver": "hasseb",
+        "dali_lamps": 2,
+        "mqtt_server": "localhost",
+        "mqtt_port": 1883,
+        "mqtt_base_topic": "dali2mqtt",
+        "ha_discovery_prefix": "homeassistant",
+        "log_level": "info",
+        "log_color": False,
     }
 
-def test_main(args, config):
-    with mock.patch('dali_mqtt_daemon.create_mqtt_client', return_value=mock.Mock()) as mock_mqtt_client:
-        with mock.patch("dali_mqtt_daemon.delay", return_value=0):
-            with mock.patch('yaml.load', return_value={}) as mock_config_file:
-                mock_mqtt_client.loop_forever = mock.Mock()
-                main(args)
-                mock_config_file.assert_called()
-                assert mock_mqtt_client.call_count == 11
+@pytest.fixture
+def fake_data_object():
+    driver = mock.Mock()
+    driver.send = lambda x: 0x00
+
+    return {
+        "driver": driver,
+        "base_topic": "test",
+        "ha_prefix": "hass",
+        "log_level": "debug",
+        "devices_names_config": None
+    }
+
+@pytest.fixture
+def fake_mqttc():
+    mqttc = mock.Mock()
+    def loop_forever():
+        import sys
+        raise Exception()
+    mqttc.loop_forever = loop_forever
+    return mqttc
+
+
+def test_main(args, config, fake_mqttc, caplog):
+    """Test main loop."""
+    with mock.patch(
+        "dali2mqtt.dali2mqtt.create_mqtt_client", return_value=fake_mqttc
+    ) as mock_mqtt_client:
+        with mock.patch("time.sleep", return_value=None) as sleep:
+            main(args)
+            assert sleep.call_count == MAX_RETRIES
+            assert mock_mqtt_client.call_count == MAX_RETRIES
+            assert any("Maximum retries of 10 reached, exiting" in rec.message for rec in caplog.records)

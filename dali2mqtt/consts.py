@@ -1,8 +1,9 @@
+"""Constants common the various modules."""
+
 import logging
 
-"""Constants common the various modules."""
 __author__ = "Diogo Gomes"
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 __email__ = "diogogomes@gmail.com"
 
 HASSEB = "hasseb"
@@ -52,6 +53,7 @@ HA_DISCOVERY_PREFIX = "{}/light/{}/config"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2
+MAX_BACKOFF_TIME = 10
 MAX_RETRIES = 10
 
 ALL_SUPPORTED_LOG_LEVELS = {

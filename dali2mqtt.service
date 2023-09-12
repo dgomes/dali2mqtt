@@ -3,8 +3,8 @@ Description=dali2mqtt
 After=network.target
 
 [Service]
-ExecStart=/opt/dali2mqtt/venv/bin/python3 dali-mqtt-daemon.py
-WorkingDirectory=/opt/dali2mqtt
+ExecStart=/home/homeassistant/dali2mqtt/venv/bin/python3 -m dali2mqtt.dali2mqtt
+WorkingDirectory=/home/homeassistant/dali2mqtt
 StandardOutput=inherit
 StandardError=inherit
 Environment=PYTHONUNBUFFERED=true

@@ -2,7 +2,7 @@
 import logging
 
 import yaml
-from consts import ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT
+from dali2mqtt.consts import ALL_SUPPORTED_LOG_LEVELS, LOG_FORMAT
 
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
@@ -40,8 +40,11 @@ class DevicesNamesConfig:
         except yaml.YAMLError as error:
             logger.error("In devices file %s: %s", self._path, error)
             raise DevicesNamesConfigLoadError()
-        except Exception as err:
-            logger.error("Could not load device names config <%s>, a new one will be created after successfull start", self._path)
+        except Exception:
+            logger.error(
+                "Could not load device names config <%s>, a new one will be created after successfull start",
+                self._path,
+            )
 
     def save_devices_names_file(self, all_lamps):
         """Save configuration back to yaml file."""

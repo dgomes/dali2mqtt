@@ -1,35 +1,34 @@
 """Configuration Object."""
 import logging
-import yaml
-import voluptuous as vol
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers.polling import PollingObserver as Observer
 
-from consts import (
-    DEFAULT_MQTT_PORT,
-    DEFAULT_MQTT_SERVER,
-    DEFAULT_HA_DISCOVERY_PREFIX,
-    DEFAULT_MQTT_BASE_TOPIC,
-    DEFAULT_DEVICES_NAMES_FILE,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOG_COLOR,
-    DEFAULT_DALI_DRIVER,
-    DALI_DRIVERS,
+import voluptuous as vol
+import yaml
+from dali2mqtt.consts import (
     ALL_SUPPORTED_LOG_LEVELS,
-    LOG_FORMAT,
     CONF_CONFIG,
     CONF_DALI_DRIVER,
+    CONF_DEVICES_NAMES_FILE,
+    CONF_HA_DISCOVERY_PREFIX,
     CONF_LOG_COLOR,
     CONF_LOG_LEVEL,
-    CONF_HA_DISCOVERY_PREFIX,
-    CONF_DEVICES_NAMES_FILE,
     CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PASSWORD,
     CONF_MQTT_PORT,
     CONF_MQTT_SERVER,
     CONF_MQTT_USERNAME,
-    CONF_MQTT_PASSWORD,
+    DALI_DRIVERS,
+    DEFAULT_DALI_DRIVER,
+    DEFAULT_DEVICES_NAMES_FILE,
+    DEFAULT_HA_DISCOVERY_PREFIX,
+    DEFAULT_LOG_COLOR,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_MQTT_BASE_TOPIC,
+    DEFAULT_MQTT_PORT,
+    DEFAULT_MQTT_SERVER,
+    LOG_FORMAT,
 )
-
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers.polling import PollingObserver as Observer
 
 CONF_SCHEMA = vol.Schema(
     {
@@ -101,7 +100,8 @@ class Config:
                     )
                     configuration = {}
                 self._config = CONF_SCHEMA(configuration)
-                self._callback()
+                if self._callback:
+                    self._callback()
             except AttributeError:
                 # No callback configured
                 pass
@@ -112,8 +112,8 @@ class Config:
     def save_config_file(self):
         """Save configuration back to yaml file."""
         try:
+            cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
             with open(self._path, "w", encoding="utf8") as outfile:
-                cfg = self._config.pop(CONF_CONFIG)  # temporary displace config file
                 yaml.dump(
                     self._config, outfile, default_flow_style=False, allow_unicode=True
                 )
