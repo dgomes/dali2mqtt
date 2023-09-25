@@ -1,4 +1,3 @@
-hid==1.0.5
 hidapi==0.14.0
 paho-mqtt==1.6.1
 python-dali==0.9
