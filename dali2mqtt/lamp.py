@@ -39,14 +39,18 @@ class Lamp:
 
         self.device_name = slugify(friendly_name)
 
-        self.min_physical_level = driver.send(
-            gear.QueryPhysicalMinimum(short_address)
-        ).value
+        logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
+
+        _min_physical_level = driver.send(gear.QueryPhysicalMinimum(short_address))
+
+        try:
+            self.min_physical_level = _min_physical_level.value
+        except Exception as err:
+            self.min_physical_level = None
+            logger.warning(f"Set min_physical_level to None as {_min_physical_level} doesn't have value attribute.")
         self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
         self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
         self.level = driver.send(gear.QueryActualLevel(short_address)).value
-
-        logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
 
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
