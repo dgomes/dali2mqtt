@@ -94,6 +94,15 @@ class Lamp:
     @level.setter
     def level(self, value):
         """Commit level to ballast."""
+
+        if not isinstance(value, (int, float)):
+            if hasattr(self, '__level'):
+                logger.warning(f"Skipping set lamp <{self.friendly_name}> to not a number value '{value}'")
+                return
+            else:
+                logger.warning(f"Set lamp <{self.friendly_name}> to not a number value '{value}'. 0 will be used.")
+                value = 0
+
         if not self.min_level <= value <= self.max_level and value != 0:
             raise ValueError
         self.__level = value
