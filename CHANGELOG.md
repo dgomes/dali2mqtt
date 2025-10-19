@@ -1,3 +1,5 @@
+0.3 - October 2025
+  - Update to HA 2025.10 discovery
 
 0.2 - August 2020
   - Updated python-dali to 0.7
