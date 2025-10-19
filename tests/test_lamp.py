@@ -54,7 +54,7 @@ def test_ha_config(fake_driver, fake_address):
 
     assert json.loads(lamp1.gen_ha_config("test")) == {
         "name": friendly_name,
-        "obj_id": "dali_light_my-lamp",
+        "def_ent_id": "dali_light_my-lamp",
         "uniq_id": f"Mock_{addr}",
         "stat_t": "test/my-lamp/light/status",
         "cmd_t": "test/my-lamp/light/switch",
