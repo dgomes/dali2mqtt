@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+"""#!/usr/bin/env python3"""
 """Bridge between a DALI controller and an MQTT bus."""
 
 import argparse
