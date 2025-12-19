@@ -3,7 +3,7 @@
 import logging
 
 __author__ = "Diogo Gomes"
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __email__ = "diogogomes@gmail.com"
 
 HASSEB = "hasseb"
@@ -50,6 +50,8 @@ MQTT_AVAILABLE = "online"
 MQTT_NOT_AVAILABLE = "offline"
 
 HA_DISCOVERY_PREFIX = "{}/light/{}/config"
+
+HA_STATUS_TOPIC = "{}/status"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2

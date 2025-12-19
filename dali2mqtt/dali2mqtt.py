@@ -37,6 +37,7 @@ from dali2mqtt.consts import (
     DEFAULT_CONFIG_FILE,
     DEFAULT_HA_DISCOVERY_PREFIX,
     HA_DISCOVERY_PREFIX,
+    HA_STATUS_TOPIC,
     HASSEB,
     LOG_FORMAT,
     MAX_RETRIES,
@@ -219,6 +220,10 @@ def on_detect_changes_in_config(mqtt_client):
     logger.info("Reconnecting to server")
     mqtt_client.disconnect()
 
+def on_message_ha_online(mqtt_client, data_object, msg):
+    """Callback on Home Assistant online message."""
+    logger.debug("Home Assistant online on %s: %s", msg.topic, msg.payload)
+    initialize_lamps(data_object, mqtt_client)
 
 def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
@@ -412,6 +417,10 @@ def create_mqtt_client(
         MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic),
         on_message_reinitialize_lamps_cmd,
     )
+
+    mqttc.message_callback_add(
+        HA_STATUS_TOPIC.format(ha_prefix), on_message_ha_online
+    )  # Default callback for unmatched topics
 
     mqttc.on_message = on_message
     if mqtt_username:
