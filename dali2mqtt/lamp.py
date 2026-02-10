@@ -94,6 +94,15 @@ class Lamp:
     @level.setter
     def level(self, value):
         """Commit level to ballast."""
+        # logger.debug("min_level: %s, value: %s max_level: %s", self.min_level, value, self.max_level);
+
+        if not isinstance(self.min_level, int):
+            self.min_level = 0
+        if not isinstance(self.max_level, int):
+            self.max_level = 255
+        if not isinstance(value, int):
+            value = 127
+
         if not self.min_level <= value <= self.max_level and value != 0:
             raise ValueError
         self.__level = value

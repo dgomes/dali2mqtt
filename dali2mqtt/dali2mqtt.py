@@ -188,7 +188,7 @@ def initialize_lamps(data_object, client):
             for topic, payload, retain in mqtt_data:
                 client.publish(topic, payload, retain)
 
-            logger.info(lamp_object)
+            #logger.info(lamp_object)
 
         except DALIError as err:
             logger.error("While initializing <%s> @ %s: %s", name, address, err)
@@ -253,7 +253,7 @@ def get_lamp_object(data_object, light):
     if "group_" in light:
         """Check if the comand is for a dali group"""
         group = int(re.search(r"group_(\d+)", light).group(1))
-        lamp_object = data_object["all_lamps"][group]
+        lamp_object = data_object["all_lamps"][f"group_{group}"]
     else:
         """The command is for a single lamp"""
         if light not in data_object["all_lamps"]:
@@ -313,17 +313,22 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
 
         try:
             lamp_object.actual_level()
-            logger.debug("Get light <%s> results in %d", light, lamp_object.level)
+            logger.debug("Get light <%s> results in %s", light, lamp_object.level)
+            lol=0
+            try:
+                lol=int(str(lamp_object.level))
+            except ValueError as err:
+                lol=0
 
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
-                lamp_object.level,
+                lol,
                 retain=False,
             )
 
             mqtt_client.publish(
                 MQTT_STATE_TOPIC.format(data_object["base_topic"], light),
-                MQTT_PAYLOAD_ON if lamp_object.level != 0 else MQTT_PAYLOAD_OFF,
+                MQTT_PAYLOAD_ON if lol != 0 else MQTT_PAYLOAD_OFF,
                 retain=False,
             )
 
