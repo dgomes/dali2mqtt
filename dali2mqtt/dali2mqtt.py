@@ -317,7 +317,7 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
             lol = 0
             try:
                 lol = int(str(lamp_object.level))
-            except ValueError as err:
+            except ValueError:
                 lol = 0
 
             mqtt_client.publish(
