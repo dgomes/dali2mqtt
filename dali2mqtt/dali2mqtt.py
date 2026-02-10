@@ -188,7 +188,7 @@ def initialize_lamps(data_object, client):
             for topic, payload, retain in mqtt_data:
                 client.publish(topic, payload, retain)
 
-            #logger.info(lamp_object)
+            # logger.info(lamp_object)
 
         except DALIError as err:
             logger.error("While initializing <%s> @ %s: %s", name, address, err)
@@ -314,11 +314,11 @@ def on_message_brightness_get_cmd(mqtt_client, data_object, msg):
         try:
             lamp_object.actual_level()
             logger.debug("Get light <%s> results in %s", light, lamp_object.level)
-            lol=0
+            lol = 0
             try:
-                lol=int(str(lamp_object.level))
+                lol = int(str(lamp_object.level))
             except ValueError as err:
-                lol=0
+                lol = 0
 
             mqtt_client.publish(
                 MQTT_BRIGHTNESS_STATE_TOPIC.format(data_object["base_topic"], light),
