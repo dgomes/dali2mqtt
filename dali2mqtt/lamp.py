@@ -47,7 +47,11 @@ class Lamp:
             self.min_physical_level = _min_physical_level.value
         except Exception as err:
             self.min_physical_level = None
-            logger.warning("Set min_physical_level to None as %s failed: %s", _min_physical_level, err)
+            logger.warning(
+                "Set min_physical_level to None as %s failed: %s",
+                _min_physical_level,
+                err,
+            )
         self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
         self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
         self.level = driver.send(gear.QueryActualLevel(short_address)).value
