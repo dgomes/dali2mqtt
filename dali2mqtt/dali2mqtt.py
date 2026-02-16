@@ -1,6 +1,3 @@
-"""#!/usr/bin/env python3"""
-"""Bridge between a DALI controller and an MQTT bus."""
-
 import argparse
 import logging
 import random
@@ -221,11 +218,13 @@ def on_detect_changes_in_config(mqtt_client):
     logger.info("Reconnecting to server")
     mqtt_client.disconnect()
 
+
 def on_message_ha_online(mqtt_client, data_object, msg):
     """Callback on Home Assistant online message."""
     if HA_STATUS_ONLINE in msg.payload:
         logger.info("Home Assistant online on %s: %s", msg.topic, msg.payload)
         initialize_lamps(data_object, mqtt_client)
+
 
 def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
@@ -504,42 +503,42 @@ if __name__ == "__main__":
         f"--{CONF_CONFIG}", help="configuration file", default=DEFAULT_CONFIG_FILE
     )
     parser.add_argument(
-        f"--{CONF_DEVICES_NAMES_FILE.replace('_','-')}", help="devices names file"
+        f"--{CONF_DEVICES_NAMES_FILE.replace('_', '-')}", help="devices names file"
     )
-    parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_','-')}", help="MQTT server")
+    parser.add_argument(f"--{CONF_MQTT_SERVER.replace('_', '-')}", help="MQTT server")
     parser.add_argument(
-        f"--{CONF_MQTT_PORT.replace('_','-')}", help="MQTT port", type=int
-    )
-    parser.add_argument(
-        f"--{CONF_MQTT_USERNAME.replace('_','-')}", help="MQTT username"
+        f"--{CONF_MQTT_PORT.replace('_', '-')}", help="MQTT port", type=int
     )
     parser.add_argument(
-        f"--{CONF_MQTT_PASSWORD.replace('_','-')}", help="MQTT password"
+        f"--{CONF_MQTT_USERNAME.replace('_', '-')}", help="MQTT username"
     )
     parser.add_argument(
-        f"--{CONF_MQTT_BASE_TOPIC.replace('_','-')}", help="MQTT base topic"
+        f"--{CONF_MQTT_PASSWORD.replace('_', '-')}", help="MQTT password"
     )
     parser.add_argument(
-        f"--{CONF_DALI_DRIVER.replace('_','-')}",
+        f"--{CONF_MQTT_BASE_TOPIC.replace('_', '-')}", help="MQTT base topic"
+    )
+    parser.add_argument(
+        f"--{CONF_DALI_DRIVER.replace('_', '-')}",
         help="DALI device driver",
         choices=DALI_DRIVERS,
     )
     parser.add_argument(
-        f"--{CONF_DALI_LAMPS.replace('_','-')}",
+        f"--{CONF_DALI_LAMPS.replace('_', '-')}",
         help="Number of lamps to scan",
         type=int,
     )
     parser.add_argument(
-        f"--{CONF_HA_DISCOVERY_PREFIX.replace('_','-')}",
+        f"--{CONF_HA_DISCOVERY_PREFIX.replace('_', '-')}",
         help="HA discovery mqtt prefix",
     )
     parser.add_argument(
-        f"--{CONF_LOG_LEVEL.replace('_','-')}",
+        f"--{CONF_LOG_LEVEL.replace('_', '-')}",
         help="Log level",
         choices=ALL_SUPPORTED_LOG_LEVELS,
     )
     parser.add_argument(
-        f"--{CONF_LOG_COLOR.replace('_','-')}",
+        f"--{CONF_LOG_COLOR.replace('_', '-')}",
         help="Coloring output",
         action="store_true",
     )
