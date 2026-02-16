@@ -52,6 +52,7 @@ MQTT_NOT_AVAILABLE = "offline"
 HA_DISCOVERY_PREFIX = "{}/light/{}/config"
 
 HA_STATUS_TOPIC = "{}/status"
+HA_STATUS_ONLINE = b"online"
 
 MIN_HASSEB_FIRMWARE_VERSION = 2.3
 MIN_BACKOFF_TIME = 2

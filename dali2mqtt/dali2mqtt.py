@@ -38,6 +38,7 @@ from dali2mqtt.consts import (
     DEFAULT_HA_DISCOVERY_PREFIX,
     HA_DISCOVERY_PREFIX,
     HA_STATUS_TOPIC,
+    HA_STATUS_ONLINE,
     HASSEB,
     LOG_FORMAT,
     MAX_RETRIES,
@@ -222,8 +223,9 @@ def on_detect_changes_in_config(mqtt_client):
 
 def on_message_ha_online(mqtt_client, data_object, msg):
     """Callback on Home Assistant online message."""
-    logger.debug("Home Assistant online on %s: %s", msg.topic, msg.payload)
-    initialize_lamps(data_object, mqtt_client)
+    if HA_STATUS_ONLINE in msg.payload:
+        logger.info("Home Assistant online on %s: %s", msg.topic, msg.payload)
+        initialize_lamps(data_object, mqtt_client)
 
 def on_message_cmd(mqtt_client, data_object, msg):
     """Callback on MQTT command message."""
@@ -364,6 +366,7 @@ def on_connect(
             (MQTT_BRIGHTNESS_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
             (MQTT_BRIGHTNESS_GET_COMMAND_TOPIC.format(mqtt_base_topic, "+"), 0),
             (MQTT_SCAN_LAMPS_COMMAND_TOPIC.format(mqtt_base_topic), 0),
+            (HA_STATUS_TOPIC.format(ha_prefix), 0),
         ]
     )
     client.publish(
@@ -421,6 +424,7 @@ def create_mqtt_client(
     mqttc.message_callback_add(
         HA_STATUS_TOPIC.format(ha_prefix), on_message_ha_online
     )  # Default callback for unmatched topics
+    logging.info("Monitoring HA on %s", HA_STATUS_TOPIC.format(ha_prefix))
 
     mqttc.on_message = on_message
     if mqtt_username:
