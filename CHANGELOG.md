@@ -1,3 +1,15 @@
+# Changelog
+
+## [0.0.4](https://github.com/silva324/dali2mqtt/compare/v0.0.3...v0.0.4) (2026-04-14)
+
+
+### 🚦 Continuous Integration
+
+* Implement new versioning strategy ([f09f127](https://github.com/silva324/dali2mqtt/commit/f09f12738a1571207363aca2f9ceaf8f0b064c14))
+* new-versioning-strategy ([f09f127](https://github.com/silva324/dali2mqtt/commit/f09f12738a1571207363aca2f9ceaf8f0b064c14))
+* update pull request title pattern to remove component reference ([abbda7e](https://github.com/silva324/dali2mqtt/commit/abbda7ed003c26408b9cb4ba09d57265afbb554a))
+* update pull request title pattern to remove component reference ([#5](https://github.com/silva324/dali2mqtt/issues/5)) ([e2d4e1f](https://github.com/silva324/dali2mqtt/commit/e2d4e1f69da528d94caf802b74e2e0d514b6814e))
+
 0.3 - October 2025
   - Update to HA 2025.10 discovery
 
