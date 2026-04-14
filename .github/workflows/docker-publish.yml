@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Tag to build (e.g. v0.0.4)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -20,6 +26,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Override GITHUB_REF for workflow_call
+        if: ${{ inputs.ref != '' }}
+        run: echo "GITHUB_REF=refs/tags/${{ inputs.ref }}" >> "$GITHUB_ENV"
 
       - name: Capture short SHA
         id: vars
