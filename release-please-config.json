@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "changelog-sections": [
+    {
+      "type": "build",
+      "section": "🛠️ Build System",
+      "hidden": false
+    },
+    {
+      "type": "ci",
+      "section": "🚦 Continuous Integration",
+      "hidden": false
+    },
+    {
+      "type": "chore",
+      "section": "🧹 Miscellaneous Chores",
+      "hidden": false
+    },
+    {
+      "type": "docs",
+      "section": "📚 Documentation",
+      "hidden": false
+    },
+    {
+      "type": "feat",
+      "section": "✨ Features",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "🐛 Bug Fixes",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "📈 Performance Improvements",
+      "hidden": false
+    },
+    {
+      "type": "revert",
+      "section": "🔙  Reverts",
+      "hidden": false
+    },
+    {
+      "type": "refactor",
+      "section": "🔄 Code Refactoring",
+      "hidden": false
+    },
+    {
+      "type": "style",
+      "section": "🎨 Styling",
+      "hidden": false
+    },
+    {
+      "type": "test",
+      "section": "🧪 Tests",
+      "hidden": false
+    }
+  ],
+  "pull-request-title-pattern": "chore: release ${component} ${version}",
+  "pull-request-footer": "This PR was automatically generated with [Release Please](https://github.com/googleapis/release-please).",
+  "initial-version": "0.0.3",
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "version-file": "dali2mqtt/consts.py",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false
+    }
+  }
+}

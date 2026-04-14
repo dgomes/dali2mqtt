@@ -1,9 +1,6 @@
 name: Build and Publish Docker Image (ARM)
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
 
 env:
@@ -33,9 +30,13 @@ jobs:
           fi
           BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           VCS_REF="$SHORT_SHA"
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          BRANCH_SLUG=$(echo "$GITHUB_REF_NAME" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
           echo "VCS_REF=$VCS_REF" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$TIMESTAMP" >> "$GITHUB_ENV"
+          echo "BRANCH_SLUG=$BRANCH_SLUG" >> "$GITHUB_ENV"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,7 +61,7 @@ jobs:
             type=semver,pattern={{version}},suffix=-arm64
             type=semver,pattern={{major}}.{{minor}},suffix=-arm64
             type=raw,value=latest-arm64,enable={{is_default_branch}}
-            type=raw,value=${{ env.SHORT_SHA }}-arm64,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=dev-${{ env.BRANCH_SLUG }}-${{ env.TIMESTAMP }}-arm64,enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push Docker image for ARM64 (Raspberry Pi 4)
         uses: docker/build-push-action@v5
