@@ -20,3 +20,13 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}
+    permissions:
+      contents: read
+      packages: write
