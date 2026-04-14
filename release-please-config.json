@@ -57,7 +57,7 @@
       "hidden": false
     }
   ],
-  "pull-request-title-pattern": "chore: release ${component} ${version}",
+  "pull-request-title-pattern": "chore: release ${version}",
   "pull-request-footer": "This PR was automatically generated with [Release Please](https://github.com/googleapis/release-please).",
   "initial-version": "0.0.3",
   "packages": {
