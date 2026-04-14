@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5](https://github.com/silva324/dali2mqtt/compare/v0.0.4...v0.0.5) (2026-04-14)
+
+
+### 🚦 Continuous Integration
+
+* enhance Docker publish workflow with dynamic tag input ([e69a1b0](https://github.com/silva324/dali2mqtt/commit/e69a1b07b175a9bb0bae8a28024a2bcfa5c62166))
+* enhance Docker publish workflow with dynamic tag input ([#7](https://github.com/silva324/dali2mqtt/issues/7)) ([ea2bc2b](https://github.com/silva324/dali2mqtt/commit/ea2bc2b7449f6531fb6a7d9a49cd8ff88ab3cedc))
+
 ## [0.0.4](https://github.com/silva324/dali2mqtt/compare/v0.0.3...v0.0.4) (2026-04-14)
 
 
