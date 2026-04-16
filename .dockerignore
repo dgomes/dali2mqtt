@@ -51,3 +51,4 @@ docker-compose.yml
 install.sh
 *.service
 *.rules
+!50-hasseb.rules
