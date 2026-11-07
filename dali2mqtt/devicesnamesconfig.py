@@ -50,6 +50,9 @@ class DevicesNamesConfig:
         """Save configuration back to yaml file."""
         self._devices_names = {}
         for lamp_object in all_lamps.values():
+            if lamp_object.is_group:
+                # Groups are named group_<n> and have no short address.
+                continue
             self._devices_names[lamp_object.short_address.address] = {
                 "friendly_name": str(lamp_object.short_address.address)
             }
