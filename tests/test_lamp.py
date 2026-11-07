@@ -3,7 +3,8 @@
 from dali2mqtt.lamp import Lamp
 from dali2mqtt.consts import __version__
 from unittest import mock
-from dali.address import Short
+from dali.address import Group, Short
+from dali.frame import BackwardFrameError
 import pytest
 import json
 from slugify import slugify
@@ -74,3 +75,58 @@ def test_ha_config(fake_driver, fake_address):
             "mf": "dali2mqtt",
         },
     }
+
+
+@pytest.fixture
+def colliding_bus():
+    """A bus where every answer is a framing error.
+
+    That's what a group query returns when its members answer differently,
+    e.g. one lamp is on and another is off.
+    """
+    driver = mock.Mock()
+    driver.send = mock.Mock(
+        side_effect=lambda cmd: cmd.response(BackwardFrameError(255))
+        if cmd.response
+        else None
+    )
+    return driver
+
+
+def test_group_lamp_initializes_without_querying_bus(colliding_bus):
+    lamp = Lamp("debug", colliding_bus, "group_1", Group(1))
+
+    assert lamp.is_group
+    assert (lamp.min_level, lamp.max_level, lamp.level) == (1, 254, 0)
+    assert lamp.min_physical_level is None
+    colliding_bus.send.assert_not_called()
+
+
+def test_group_lamp_actual_level_does_not_query_bus(colliding_bus):
+    lamp = Lamp("debug", colliding_bus, "group_1", Group(1))
+    lamp.actual_level()
+
+    assert lamp.level == 0
+    colliding_bus.send.assert_not_called()
+
+
+def test_group_lamp_str():
+    lamp = Lamp("debug", mock.Mock(), "group 1", Group(1))
+
+    assert str(lamp) == (
+        f"group-1 - address: {Group(1)}, actual brightness level: 0 "
+        "(minimum: 1, max: 254, physical minimum: None)"
+    )
+
+
+def test_group_lamp_still_controls_the_group():
+    driver = mock.Mock()
+    lamp = Lamp("debug", driver, "group_1", Group(1))
+
+    lamp.level = 200
+    lamp.off()
+
+    sent = [c.args[0] for c in driver.send.call_args_list]
+    assert [type(cmd).__name__ for cmd in sent] == ["DAPC", "Off"]
+    assert all(cmd.destination == Group(1) for cmd in sent)
+

@@ -2,6 +2,7 @@
 import json
 import logging
 
+import dali.address as address
 import dali.gear.general as gear
 from dali2mqtt.consts import (
     ALL_SUPPORTED_LOG_LEVELS,
@@ -36,25 +37,37 @@ class Lamp:
         self.driver = driver
         self.short_address = short_address
         self.friendly_name = friendly_name
+        self.is_group = isinstance(short_address, address.Group)
 
         self.device_name = slugify(friendly_name)
 
         logger.setLevel(ALL_SUPPORTED_LOG_LEVELS[log_level])
 
-        _min_physical_level = driver.send(gear.QueryPhysicalMinimum(short_address))
-
-        try:
-            self.min_physical_level = _min_physical_level.value
-        except Exception as err:
+        if self.is_group:
+            # A query sent to a group is answered by every member at once.
+            # Different answers collide on the bus and come back as a framing
+            # error, so the result can't be trusted. Use DALI's full range.
             self.min_physical_level = None
-            logger.warning(
-                "Set min_physical_level to None as %s failed: %s",
-                _min_physical_level,
-                err,
-            )
-        self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
-        self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
-        self.level = driver.send(gear.QueryActualLevel(short_address)).value
+            self.min_level = 1
+            self.max_level = 254
+            # Assign directly: the level setter would send DAPC to the group.
+            self.__level = 0
+            logger.debug("Initialized group %s with default levels", friendly_name)
+        else:
+            _min_physical_level = driver.send(gear.QueryPhysicalMinimum(short_address))
+
+            try:
+                self.min_physical_level = _min_physical_level.value
+            except Exception as err:
+                self.min_physical_level = None
+                logger.warning(
+                    "Set min_physical_level to None as %s failed: %s",
+                    _min_physical_level,
+                    err,
+                )
+            self.min_level = driver.send(gear.QueryMinLevel(short_address)).value
+            self.max_level = driver.send(gear.QueryMaxLevel(short_address)).value
+            self.level = driver.send(gear.QueryActualLevel(short_address)).value
 
     def gen_ha_config(self, mqtt_base_topic):
         """Generate a automatic configuration for Home Assistant."""
@@ -88,6 +101,10 @@ class Lamp:
 
     def actual_level(self):
         """Retrieve actual level from ballast."""
+        if self.is_group:
+            # Members may differ, so a group query has no single answer.
+            logger.debug("Not querying actual level of group %s", self.friendly_name)
+            return
         self.__level = self.driver.send(gear.QueryActualLevel(self.short_address))
 
     @property
@@ -112,8 +129,13 @@ class Lamp:
 
     def __str__(self):
         """Serialize lamp information."""
+        # Group addresses have no .address attribute.
+        if self.is_group:
+            addr_str = str(self.short_address)
+        else:
+            addr_str = str(self.short_address.address)
         return (
-            f"{self.device_name} - address: {self.short_address.address}, "
+            f"{self.device_name} - address: {addr_str}, "
             f"actual brightness level: {self.level} (minimum: {self.min_level}, "
             f"max: {self.max_level}, physical minimum: {self.min_physical_level})"
         )
